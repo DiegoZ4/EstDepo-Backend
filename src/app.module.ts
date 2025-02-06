@@ -3,16 +3,12 @@ import { HttpService, HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
 import * as Joi from 'joi';
 
-
-import { UsersModule } from './users/users.module';
 import { lastValueFrom } from 'rxjs';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ProductsModule } from './products/products.module';
 import { DatabaseModule } from './database/database.module';
-import { DiceController } from './controllers/dados/dados.controller';
-import { DiceService } from './controllers/dados/dados.service';
 import { enviroments } from './enviroments';
+import { EstDepoModule } from './est-depo/est-depo.module';
 import config from './config';
 
 
@@ -35,14 +31,12 @@ import config from './config';
         POSTGRES_HOST: Joi.string().required(),
       }),
     }),
-    UsersModule,
-    ProductsModule,
     DatabaseModule,
+    EstDepoModule,
   ],
-  controllers: [AppController, DiceController],
+  controllers: [AppController],
   providers: [
     AppService,
-    DiceService,
     {
       provide: 'TASKS',
       useFactory: async (http: HttpService) => {
@@ -57,6 +51,7 @@ import config from './config';
       },
       inject: [HttpService],
     },
+
   ],
 })
 export class AppModule { }
