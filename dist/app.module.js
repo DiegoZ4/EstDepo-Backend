@@ -17,6 +17,7 @@ const app_service_1 = require("./app.service");
 const database_module_1 = require("./database/database.module");
 const enviroments_1 = require("./enviroments");
 const est_depo_module_1 = require("./est-depo/est-depo.module");
+const auth_module_1 = require("./auth/auth.module");
 const config_2 = require("./config");
 let AppModule = class AppModule {
 };
@@ -42,6 +43,7 @@ exports.AppModule = AppModule = __decorate([
             }),
             database_module_1.DatabaseModule,
             est_depo_module_1.EstDepoModule,
+            auth_module_1.AuthModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [

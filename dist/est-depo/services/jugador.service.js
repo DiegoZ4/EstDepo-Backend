@@ -63,13 +63,15 @@ let JugadorService = class JugadorService {
         return ranking;
     }
     async findOne(id) {
-        const jugador = await this.jugadorRepo.findOne({ id });
-        if (jugador) {
-            return jugador;
+        const jugador = await this.jugadorRepo.findOne({ where: { id }, relations: ['equipo', 'pais', 'category'] });
+        if (!jugador) {
+            throw new common_1.NotFoundException(`Jugador #${id} not found`);
         }
-        else {
-            throw new common_1.NotFoundException(`jugador #${id} not found`);
+        const baseUrl = this.configService.get('API_URL') || 'http://stats.zetaserver.com.ar';
+        if (jugador.image && !jugador.image.startsWith('http')) {
+            jugador.image = `${baseUrl}/img/jugadores/${jugador.image}`;
         }
+        return jugador;
     }
     async findByEquipo(equipoId) {
         const result = await this.jugadorRepo.find({

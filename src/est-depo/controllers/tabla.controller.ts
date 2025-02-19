@@ -1,4 +1,12 @@
-import { Controller, Get, Request, Response, Query, Inject } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Request,
+  Response,
+  Query,
+  Inject,
+  UseGuards
+} from '@nestjs/common';
 import { TablaService } from '../services/tabla.service';
 import { ParseIntPipe } from '../../common/parse-int/parse-int.pipe';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
@@ -9,6 +17,7 @@ import { Pais } from '../entities/pais.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Client } from 'pg';
+import { JwtAuthGuard } from '../../auth/jwt.auth.guard';
 
 @ApiTags('Tabla')
 @Controller('tabla')
@@ -24,6 +33,7 @@ export class TablaController {
   ) {
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get()
   getTabla() {
 

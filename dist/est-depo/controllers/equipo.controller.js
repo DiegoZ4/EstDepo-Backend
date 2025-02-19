@@ -17,6 +17,7 @@ const openapi = require("@nestjs/swagger");
 const common_1 = require("@nestjs/common");
 const parse_int_pipe_1 = require("../../common/parse-int/parse-int.pipe");
 const swagger_1 = require("@nestjs/swagger");
+const jwt_auth_guard_1 = require("../../auth/jwt.auth.guard");
 const equipo_service_1 = require("../services/equipo.service");
 const equipo_dto_1 = require("../dtos/equipo.dto");
 let EquipoController = class EquipoController {
@@ -41,6 +42,7 @@ let EquipoController = class EquipoController {
 };
 exports.EquipoController = EquipoController;
 __decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Get)(),
     openapi.ApiResponse({ status: 200, type: [require("../entities/equipo.entity").Equipo] }),
     __metadata("design:type", Function),
@@ -48,6 +50,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], EquipoController.prototype, "getAll", null);
 __decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Get)(':id'),
     openapi.ApiResponse({ status: 200, type: require("../entities/equipo.entity").Equipo }),
     __param(0, (0, common_1.Param)('id', parse_int_pipe_1.ParseIntPipe)),
@@ -56,6 +59,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], EquipoController.prototype, "getOne", null);
 __decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Post)(),
     openapi.ApiResponse({ status: 201, type: require("../entities/equipo.entity").Equipo }),
     __param(0, (0, common_1.Body)()),
@@ -73,6 +77,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], EquipoController.prototype, "update", null);
 __decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Delete)(':id'),
     openapi.ApiResponse({ status: 200 }),
     __param(0, (0, common_1.Param)('id', parse_int_pipe_1.ParseIntPipe)),

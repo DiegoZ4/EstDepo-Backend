@@ -24,6 +24,7 @@ const pais_entity_1 = require("../entities/pais.entity");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const pg_1 = require("pg");
+const jwt_auth_guard_1 = require("../../auth/jwt.auth.guard");
 let TablaController = class TablaController {
     constructor(tablaService, clientPg, partidoRepository, equipoRepository, torneoRepository, paisRepository) {
         this.tablaService = tablaService;
@@ -38,6 +39,7 @@ let TablaController = class TablaController {
 };
 exports.TablaController = TablaController;
 __decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Get)(),
     openapi.ApiResponse({ status: 200 }),
     __metadata("design:type", Function),

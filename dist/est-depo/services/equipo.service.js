@@ -28,8 +28,15 @@ let EquipoService = class EquipoService {
         this.equipoRepo = equipoRepo;
     }
     async findAll() {
-        return this.equipoRepo.find({
+        const equipos = await this.equipoRepo.find({
             relations: ['pais'],
+        });
+        const baseUrl = this.configService.get('API_URL') || 'http://localhost:3000';
+        return equipos.map(equipo => {
+            if (equipo.image && !equipo.image.startsWith('http')) {
+                equipo.image = `${baseUrl}/img/equipos/${equipo.image}`;
+            }
+            return equipo;
         });
     }
     async findOne(id) {
@@ -39,6 +46,10 @@ let EquipoService = class EquipoService {
         });
         if (!equipo) {
             throw new common_1.NotFoundException(`Equipo #${id} no encontrado`);
+        }
+        const baseUrl = this.configService.get('API_URL') || 'http://localhost:3000';
+        if (equipo.image && !equipo.image.startsWith('http')) {
+            equipo.image = `${baseUrl}/img/equipos/${equipo.image}`;
         }
         return equipo;
     }

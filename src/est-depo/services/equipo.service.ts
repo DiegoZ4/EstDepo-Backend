@@ -20,8 +20,17 @@ export class EquipoService {
   ) { }
 
   async findAll() {
-    return this.equipoRepo.find({
-      relations: ['pais'], // Incluye la relación con "pais"
+    const equipos = await this.equipoRepo.find({
+      relations: ['pais'],
+    });
+    // Obtén la URL base de la configuración o usa un valor por defecto
+    const baseUrl = this.configService.get<string>('API_URL') || 'http://localhost:3000';
+    return equipos.map(equipo => {
+      if (equipo.image && !equipo.image.startsWith('http')) {
+        // Si solo se guarda el nombre del archivo, le agregamos el path completo
+        equipo.image = `${baseUrl}/img/equipos/${equipo.image}`;
+      }
+      return equipo;
     });
   }
 
@@ -29,13 +38,15 @@ export class EquipoService {
   async findOne(id: number) {
     const equipo = await this.equipoRepo.findOne({
       where: { id },
-      relations: ['pais'], // Incluye la relación con "pais"
+      relations: ['pais'],
     });
-
     if (!equipo) {
       throw new NotFoundException(`Equipo #${id} no encontrado`);
     }
-
+    const baseUrl = this.configService.get<string>('API_URL') || 'http://localhost:3000';
+    if (equipo.image && !equipo.image.startsWith('http')) {
+      equipo.image = `${baseUrl}/img/equipos/${equipo.image}`;
+    }
     return equipo;
   }
 

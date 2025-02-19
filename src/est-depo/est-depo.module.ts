@@ -1,4 +1,7 @@
 import { Module } from '@nestjs/common';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
+
 import { PaisController } from './controllers/pais.controller';
 import { EquipoController } from './controllers/equipo.controller';
 import { JugadorController } from './controllers/jugador.controller';
@@ -22,18 +25,30 @@ import { Category } from './entities/category.entity';
 import { Gol } from './entities/goles.entity';
 import { GolesController } from './controllers/goles.controller';
 import { GolesService } from './services/goles.service';
+import { UserController } from './controllers/user.controller';
+import { UserService } from './services/user.service';
+import { User } from './entities/user.entity';
+import { UploadController } from './controllers/upload.controller';
+import { ImgController } from './controllers/img.controller';
 
 
 @Module({
-  imports: [TypeOrmModule.forFeature([
-    Equipo,
-    Category,
-    Jugador,
-    Pais,
-    Torneo,
-    Partido,
-    Gol
-  ])],
+  imports: [
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'uploads'),
+      serveRoot: '/img',
+    }),
+
+    TypeOrmModule.forFeature([
+      Equipo,
+      User,
+      Category,
+      Jugador,
+      Pais,
+      Torneo,
+      Partido,
+      Gol
+    ])],
   controllers: [
     PaisController,
     EquipoController,
@@ -41,7 +56,10 @@ import { GolesService } from './services/goles.service';
     TorneoController,
     PartidoController,
     CategoryController,
-    GolesController
+    GolesController,
+    UserController,
+    UploadController,
+    ImgController,
   ],
   providers: [
     PartidoService,
@@ -51,7 +69,9 @@ import { GolesService } from './services/goles.service';
     EquipoService,
     TablaService,
     CategoryService,
-    GolesService
-  ]
+    GolesService,
+    UserService,
+  ],
+  exports: [UserService],
 })
 export class EstDepoModule { }

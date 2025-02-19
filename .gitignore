@@ -1,7 +1,12 @@
 # compiled output
+# Ignorar todo en dist, excepto main.js
+/dist/*
+!/dist/main.js
 
 /node_modules
 /build
+
+/uploads
 
 # Logs
 logs

@@ -16,6 +16,7 @@ exports.CategoryController = void 0;
 const openapi = require("@nestjs/swagger");
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
+const jwt_auth_guard_1 = require("../../auth/jwt.auth.guard");
 const category_service_1 = require("../services/category.service");
 const category_dto_1 = require("../dtos/category.dto");
 let CategoryController = class CategoryController {
@@ -40,6 +41,7 @@ let CategoryController = class CategoryController {
 };
 exports.CategoryController = CategoryController;
 __decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Get)(),
     (0, swagger_1.ApiOperation)({ summary: 'Get all categories' }),
     openapi.ApiResponse({ status: 200, type: [require("../entities/category.entity").Category] }),
@@ -48,6 +50,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], CategoryController.prototype, "findAll", null);
 __decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Get)(':id'),
     (0, swagger_1.ApiOperation)({ summary: 'Get a category by ID' }),
     openapi.ApiResponse({ status: 200, type: require("../entities/category.entity").Category }),
@@ -57,6 +60,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], CategoryController.prototype, "findOne", null);
 __decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Post)(),
     (0, swagger_1.ApiOperation)({ summary: 'Create a new category' }),
     openapi.ApiResponse({ status: 201, type: require("../entities/category.entity").Category }),
@@ -66,6 +70,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], CategoryController.prototype, "create", null);
 __decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Put)(':id'),
     (0, swagger_1.ApiOperation)({ summary: 'Update a category by ID' }),
     openapi.ApiResponse({ status: 200, type: require("../entities/category.entity").Category }),
@@ -76,6 +81,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], CategoryController.prototype, "update", null);
 __decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Delete)(':id'),
     (0, swagger_1.ApiOperation)({ summary: 'Delete a category by ID' }),
     openapi.ApiResponse({ status: 200 }),

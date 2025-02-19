@@ -9,6 +9,7 @@ import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import { enviroments } from './enviroments';
 import { EstDepoModule } from './est-depo/est-depo.module';
+import { AuthModule } from './auth/auth.module';
 import config from './config';
 
 
@@ -33,6 +34,7 @@ import config from './config';
     }),
     DatabaseModule,
     EstDepoModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [

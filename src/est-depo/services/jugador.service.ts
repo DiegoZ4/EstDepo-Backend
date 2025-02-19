@@ -64,13 +64,15 @@ export class JugadorService {
 
 
   async findOne(id: number) {
-    const jugador = await this.jugadorRepo.findOne({ id });
-    if (jugador) {
-      return jugador;
-    } else {
-      throw new NotFoundException(`jugador #${id} not found`);
+    const jugador = await this.jugadorRepo.findOne({ where: { id }, relations: ['equipo', 'pais', 'category'] });
+    if (!jugador) {
+      throw new NotFoundException(`Jugador #${id} not found`);
     }
-
+    const baseUrl = this.configService.get<string>('API_URL') || 'http://stats.zetaserver.com.ar';
+    if (jugador.image && !jugador.image.startsWith('http')) {
+      jugador.image = `${baseUrl}/img/jugadores/${jugador.image}`;
+    }
+    return jugador;
   }
 
   async findByEquipo(equipoId: number): Promise<Jugador[]> {
