@@ -1,12 +1,12 @@
+// auth.service.ts
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserService } from '../../est-depo/services/user.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { OAuth2Client } from 'google-auth-library';
-import { UserRole } from '../../est-depo/dtos/user.dto';
+import { UserRole, CreateUserDto } from '../../est-depo/dtos/user.dto';
 
-
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID; // Configurado en .env
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 
 @Injectable()
 export class AuthService {
@@ -19,25 +19,44 @@ export class AuthService {
     this.googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
   }
 
-  // Lógica de login tradicional
+  // Valida las credenciales del usuario
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.usersService.findByEmail(email);
-    if (user && await bcrypt.compare(password, user.password)) {
-      const { password, ...result } = user;
-      return result;
+    console.log('Input:', { email, password });
+    console.log('User:', user);
+    if (user) {
+      const isMatch = await bcrypt.compare(password, user.password);
+      console.log('¿Coinciden las contraseñas?', isMatch);
+      if (isMatch) {
+        const { password, ...result } = user;
+        return result;
+      }
     }
     return null;
   }
 
+
+  // Genera el token JWT
   async login(user: any) {
-    // Puedes ajustar el payload según tus necesidades
     const payload = { email: user.email, name: user.name, rol: user.rol, sub: user.id };
     return {
       access_token: this.jwtService.sign(payload),
     };
   }
 
-  // Lógica para Google: verifica el token y retorna los datos
+  // Registro tradicional: crea el usuario, hashea la contraseña y retorna el token
+  async register(createUserDto: CreateUserDto) {
+    const userExists = await this.usersService.findByEmail(createUserDto.email);
+    if (userExists) {
+      throw new UnauthorizedException('El usuario ya existe');
+    }
+    // Pasa la contraseña sin hashear, ya que el hook lo hará
+    const newUser = await this.usersService.create(createUserDto);
+    return this.login(newUser);
+  }
+
+
+  // Verifica el token de Google y retorna el payload
   async verifyGoogleToken(token: string): Promise<any> {
     const ticket = await this.googleClient.verifyIdToken({
       idToken: token,
@@ -53,18 +72,15 @@ export class AuthService {
   // Registro o login con Google
   async registerOrLoginWithGoogle(token: string): Promise<any> {
     const payload = await this.verifyGoogleToken(token);
-    // Por ejemplo, extrae email y nombre
-    const { email, name, picture } = payload;
-    // Busca el usuario en tu base de datos
+    const { email, name } = payload;
     let user = await this.usersService.findByEmail(email);
     if (!user) {
-      // Si no existe, crea un usuario nuevo (puedes ajustar los campos y la lógica)
+      // Puedes generar una contraseña aleatoria o dejarla vacía, según tu lógica
       user = await this.usersService.create({
         email,
         name,
-        password: '', // O una contraseña generada aleatoriamente, ya que se usa Google
+        password: '',
         rol: UserRole.FREE_USER,
-        // Otros campos necesarios...
       });
     }
     return this.login(user);

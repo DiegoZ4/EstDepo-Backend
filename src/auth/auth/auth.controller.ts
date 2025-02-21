@@ -1,16 +1,33 @@
 import { Controller, Post, Body, Request, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from '../local-auth.guard';
+import { CreateUserDto } from 'src/est-depo/dtos/user.dto';
+import { UnauthorizedException } from '@nestjs/common';
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) { }
 
   // Endpoint para login tradicional usando LocalAuthGuard
-  @UseGuards(LocalAuthGuard)
+
+
+
+  @Post('register')
+  async register(@Body() createUserDto: CreateUserDto) {
+    const token = await this.authService.register(createUserDto);
+    return { message: 'Registro exitoso', access_token: token };
+  }
+
+
   @Post('login')
-  async login(@Request() req) {
-    return this.authService.login(req.user);
+  async login(@Body() loginDto: { email: string; password: string }) {
+    console.log(loginDto);
+    const user = await this.authService.validateUser(loginDto.email, loginDto.password);
+    console.log(user);
+    if (!user) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+    return this.authService.login(user);
   }
 
   // Endpoint para login o registro con Google
