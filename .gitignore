@@ -1,7 +1,9 @@
-# compiled output
 # Ignorar todo en dist, excepto main.js
 /dist/*
-!/dist/main.js
+/dist/main.js
+/dist/
+
+ecosystem.config.js
 
 /node_modules
 /build
