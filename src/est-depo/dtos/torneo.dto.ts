@@ -51,8 +51,6 @@ export class CreateTorneoDto {
   @ApiProperty({ description: 'fechas del torneo' })
   readonly fechas: number;
 
-
-
 }
 
 export class UpdateTorneoDto extends PartialType(CreateTorneoDto) { }
