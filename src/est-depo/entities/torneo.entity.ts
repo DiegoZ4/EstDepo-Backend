@@ -50,11 +50,15 @@ export class Torneo {
   @ManyToMany(() => Category, (category) => category.torneo, { nullable: true })
   categories: Category[];
 
+  @Column({ nullable: true })
+  fechas: number;
+
 
   @CreateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 
   @UpdateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
+
 
 }

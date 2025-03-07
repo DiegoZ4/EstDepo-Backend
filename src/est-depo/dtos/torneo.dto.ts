@@ -2,7 +2,8 @@ import {
   IsString,
   IsNotEmpty,
   IsNumber,
-  IsOptional
+  IsOptional,
+  IsArray
 
 } from 'class-validator';
 
@@ -30,7 +31,7 @@ export class CreateTorneoDto {
   @ApiProperty({ description: 'The id of the pais' })
   readonly paisId: number;
 
-  @IsNumber()
+  @IsArray()
   @IsOptional()
   @ApiProperty({ description: 'The categoriesIds of the torneo' })
   readonly categoriesIds: number[];
@@ -44,6 +45,11 @@ export class CreateTorneoDto {
   @IsOptional()
   @ApiProperty({ description: 'The partidosIds of the torneo' })
   readonly partidosIds: number[];
+
+  @IsNumber()
+  @IsOptional()
+  @ApiProperty({ description: 'fechas del torneo' })
+  readonly fechas: number;
 
 
 

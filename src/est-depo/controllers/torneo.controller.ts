@@ -45,6 +45,14 @@ export class TorneoController {
     return this.torneoService.create(payload);
   }
 
+  @Get(':torneoId/tabla/:categoriaId')
+  async getTablaPorCategoria(
+    @Param('torneoId', ParseIntPipe) torneoId: number,
+    @Param('categoriaId', ParseIntPipe) categoriaId: number,
+  ) {
+    return this.torneoService.getTablaPorCategoria(torneoId, categoriaId);
+  }
+
 
   @UseGuards(JwtAuthGuard)
   @Put(':id')
