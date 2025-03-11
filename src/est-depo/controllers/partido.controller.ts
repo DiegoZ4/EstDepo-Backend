@@ -28,6 +28,15 @@ export class PartidoController {
     return this.partidoService.findAll();
   }
 
+  @Get('/:torneoId/fixture/:categoriaId/:fecha')
+  getFixtureByCategory(
+    @Param('torneoId', ParseIntPipe) torneoId: number,
+    @Param('categoriaId', ParseIntPipe) categoriaId: number,
+    @Param('fecha', ParseIntPipe) fecha: number
+  ) {
+    return this.partidoService.getFixtureByCategory(torneoId, categoriaId, fecha);
+  }
+
 
   @UseGuards(JwtAuthGuard)
   @Get(':id')

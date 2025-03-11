@@ -15,6 +15,8 @@ import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/jwt.auth.guard';
 import { JugadorService } from '../services/jugador.service';
 import { CreateJugadorDto, UpdateJugadorDto } from '../dtos/jugador.dto';
+import { Jugador } from '../entities/jugador.entity';
+import { BadRequestException } from '@nestjs/common';
 
 
 @ApiTags('jugadores')
@@ -39,11 +41,29 @@ export class JugadorController {
     return this.jugadorService.findAll();
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Get('Goleadores')
-  getRankingGoleadores() {
-    return this.jugadorService.getRankingGoleadores();
+  @Get('ranking')
+  async getRankingGoleadores(
+    @Query('torneoId', ParseIntPipe) torneoId: number,
+    @Query('categoriesIds') categoriesIds?: string
+  ) {
+    // Convertimos la lista de categorías en un arreglo de números
+    // si no se envía, será un arreglo vacío
+    let categories: number[] = [];
+    if (categoriesIds) {
+      // categoriesIds vendrá como "1,2,3", lo dividimos en un array
+      categories = categoriesIds.split(',').map((idStr) => {
+        const id = parseInt(idStr, 10);
+        if (isNaN(id)) {
+          throw new BadRequestException(`Invalid category ID: ${idStr}`);
+        }
+        return id;
+      });
+    }
+
+    return this.jugadorService.getRankingGoleadores(torneoId, categories);
   }
+
+
 
   @UseGuards(JwtAuthGuard)
   @Get(':id')

@@ -86,8 +86,6 @@ export class TorneoService {
       );
     }
 
-    console.log(torneo, category);
-
     const partidosFiltrados = await this.partidoRepo.find({
       where: {
         estado: 'Finalizado',
@@ -121,7 +119,6 @@ export class TorneoService {
       });
     });
 
-    console.log(partidosFiltrados);
 
     // Calcular estadísticas en función de los partidos filtrados
     partidosFiltrados.forEach(partido => {

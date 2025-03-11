@@ -95,6 +95,37 @@ export class PartidoService {
     return await this.partidoRepo.save(partido);
   }
 
+  async getFixtureByCategory(torneoId: number, categoriaId: number, fecha: number): Promise<Partido[]> {
+    // Buscar el torneo y sus categorías
+    const torneo = await this.torneoRepo.findOne({
+      where: { id: torneoId },
+      relations: ['categories'],
+    });
+    if (!torneo) {
+      throw new NotFoundException(`Torneo #${torneoId} no encontrado`);
+    }
+    // Verificar que la categoría esté asociada al torneo
+    const category = torneo.categories.find((cat) => cat.id === categoriaId);
+    if (!category) {
+      throw new NotFoundException(
+        `Categoría #${categoriaId} no encontrada en el torneo #${torneoId}`
+      );
+    }
+
+    // Buscar partidos filtrando por torneo, categoría y la fecha (jornada)
+    const partidos = await this.partidoRepo.find({
+      where: {
+        torneo: { id: torneoId },
+        category: { id: categoriaId },
+        fecha: fecha, // Asumimos que en la entidad Partido el campo "fecha" guarda el número de jornada
+      },
+      relations: ['equipoLocal', 'equipoVisitante', 'category', 'torneo'],
+    });
+
+    return partidos;
+  }
+
+
   async update(id: number, updatePartidoDto: UpdatePartidoDto): Promise<Partido> {
     const partido = await this.partidoRepo.findOne({ where: { id } });
 

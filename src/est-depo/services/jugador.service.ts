@@ -37,13 +37,19 @@ export class JugadorService {
     return this.jugadorRepo.find();
   }
 
-  async getRankingGoleadores() {
-    const ranking = await this.jugadorRepo
+  async getRankingGoleadores(torneoId: number, categoriesIds: number[]) {
+    const qb = this.jugadorRepo
       .createQueryBuilder('jugador')
       .leftJoin('jugador.equipo', 'equipo')
-      .leftJoin('jugador.category', 'category')
-      .leftJoin('jugador.gol', 'gol') // Ahora coincide con la relación 'goles'
+      // Unimos la categoría registrada en el jugador con un alias distinto
+      .leftJoin('jugador.category', 'jugadorCategory')
+      // Unimos los goles anotados
+      .leftJoin('jugador.gol', 'gol')
+      // Unimos el torneo al que pertenece el gol
       .leftJoin('gol.torneo', 'torneo')
+      // Unimos el partido del gol y, desde allí, la categoría del partido
+      .leftJoin('gol.partido', 'p')
+      .leftJoin('p.category', 'category')
       .select([
         'equipo.id AS equipoId',
         'equipo.name AS equipoName',
@@ -53,14 +59,26 @@ export class JugadorService {
         'torneo.name AS torneoName',
         'category.id AS categoriaId',
         'category.name AS categoriaName',
+        'jugadorCategory.id AS categoriaJugadorId',
+        'jugadorCategory.name AS categoriaJugador',
         'COALESCE(COUNT(gol.id), 0) AS totalGoles',
       ])
-      .groupBy('jugador.id, jugador.name, equipo.id, equipo.name, torneo.id, torneo.name, category.id, category.name')
-      .orderBy('totalGoles', 'DESC')
-      .getRawMany();
+      .groupBy(
+        'jugador.id, jugador.name, equipo.id, equipo.name, torneo.id, torneo.name, category.id, category.name, jugadorCategory.id, jugadorCategory.name'
+      )
+      .orderBy('totalGoles', 'DESC');
 
-    return ranking;
+    // Filtramos por torneo
+    qb.where('torneo.id = :torneoId', { torneoId });
+
+    // Filtramos por categorías (las del partido) si se pasan
+    if (categoriesIds && categoriesIds.length > 0) {
+      qb.andWhere('category.id IN (:...categoriesIds)', { categoriesIds });
+    }
+
+    return qb.getRawMany();
   }
+
 
 
   async findOne(id: number) {
@@ -74,6 +92,7 @@ export class JugadorService {
     }
     return jugador;
   }
+
 
   async findByEquipo(equipoId: number): Promise<Jugador[]> {
     const result = await this.jugadorRepo.find({
