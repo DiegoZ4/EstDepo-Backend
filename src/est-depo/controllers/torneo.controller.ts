@@ -31,6 +31,20 @@ export class TorneoController {
     return this.torneoService.getTablaGeneral();
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('/agrupados/:id')
+  async getTorneoConPartidosAgrupados(@Param('id', ParseIntPipe) id: number) {
+    return this.torneoService.getTorneoConPartidosAgrupados(id);
+  }
+
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/categorias')
+  async getCategoriasDelTorneo(@Param('id', ParseIntPipe) id: number) {
+    return this.torneoService.getCategoriasDelTorneo(id);
+  }
+
+
 
   @UseGuards(JwtAuthGuard)
   @Get(':id')
@@ -46,11 +60,11 @@ export class TorneoController {
   }
 
   @Get(':torneoId/tabla/:categoriaId')
-  async getTablaPorCategoria(
+  async getTablaPorCategoriaAgrupada(
     @Param('torneoId', ParseIntPipe) torneoId: number,
     @Param('categoriaId', ParseIntPipe) categoriaId: number,
   ) {
-    return this.torneoService.getTablaPorCategoria(torneoId, categoriaId);
+    return this.torneoService.getTablaPorCategoriaAgrupada(torneoId, categoriaId);
   }
 
 

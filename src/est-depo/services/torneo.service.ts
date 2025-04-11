@@ -46,6 +46,26 @@ export class TorneoService {
   }
 
 
+  // torneo.service.ts o directamente en el controller si preferís
+  async getTorneoConPartidosAgrupados(id: number) {
+    const torneo = await this.torneoRepo.findOne({
+      where: { id },
+      relations: ["partidos", "partidos.equipoLocal", "partidos.equipoVisitante"],
+    });
+
+    const partidosAgrupados = torneo.partidos.reduce((acc, partido) => {
+      const grupo = partido.group || "Sin Grupo";
+      if (!acc[grupo]) acc[grupo] = [];
+      acc[grupo].push(partido);
+      return acc;
+    }, {} as Record<string, Partido[]>);
+
+    return {
+      ...torneo,
+      partidosPorGrupo: partidosAgrupados,
+    };
+  }
+
 
 
   async create(data: CreateTorneoDto) {
@@ -59,6 +79,7 @@ export class TorneoService {
       .getRepository(Category)
       .findByIds(data.categoriesIds || []);
 
+
     const newTorneo = this.torneoRepo.create({
       ...data,
       pais,
@@ -68,102 +89,103 @@ export class TorneoService {
     return this.torneoRepo.save(newTorneo);
   }
 
-  async getTablaPorCategoria(torneoId: number, categoriaId: number) {
-    // Buscar el torneo y sus categorías
+  async getTablaPorCategoriaAgrupada(torneoId: number, categoriaId: number) {
     const torneo = await this.torneoRepo.findOne({
       where: { id: torneoId },
       relations: ['categories'],
     });
-    if (!torneo) {
-      throw new NotFoundException(`Torneo #${torneoId} no encontrado`);
-    }
-    // Verificar que la categoría esté asociada al torneo
-    const category = torneo.categories.find((cat) => cat.id === categoriaId);
+    if (!torneo) throw new NotFoundException(`Torneo #${torneoId} no encontrado`);
 
+    const category = torneo.categories.find(cat => cat.id === categoriaId);
     if (!category) {
-      throw new NotFoundException(
-        `Categoría #${categoriaId} no encontrada en el torneo #${torneoId}`
-      );
+      throw new NotFoundException(`Categoría #${categoriaId} no está en el torneo #${torneoId}`);
     }
 
-    const partidosFiltrados = await this.partidoRepo.find({
+    const partidos = await this.partidoRepo.find({
       where: {
         estado: 'Finalizado',
         torneo: { id: torneoId },
         category: { id: categoriaId },
       },
-      relations: ['equipoLocal', 'equipoVisitante'],
+      relations: ['equipoLocal', 'equipoVisitante',],
     });
 
-    // Obtener equipos que pertenecen a la categoría mediante QueryBuilder
     const equiposSet = new Set<number>();
-    partidosFiltrados.forEach(partido => {
-      equiposSet.add(partido.equipoLocal.id);
-      equiposSet.add(partido.equipoVisitante.id);
+    partidos.forEach(p => {
+      equiposSet.add(p.equipoLocal.id);
+      equiposSet.add(p.equipoVisitante.id);
     });
+
     const equipos = await this.equipoRepo.findByIds(Array.from(equiposSet));
+    const equiposMap = new Map(equipos.map(eq => [eq.id, eq]));
 
-    // Inicializar las estadísticas para cada equipo
-    const stats = new Map<number, any>();
-    equipos.forEach((equipo) => {
-      stats.set(equipo.id, {
-        equipo,
-        Pts: 0,
-        PJ: 0,
-        PG: 0,
-        PE: 0,
-        PP: 0,
-        GF: 0,
-        GC: 0,
-        DIF: 0,
-      });
-    });
+    const grupos: Record<string, any[]> = {};
 
+    partidos.forEach(partido => {
+      const grupo = partido.group || 'General';
+      if (!grupos[grupo]) grupos[grupo] = [];
 
-    // Calcular estadísticas en función de los partidos filtrados
-    partidosFiltrados.forEach(partido => {
-      const local = stats.get(partido.equipoLocal.id);
-      const visitante = stats.get(partido.equipoVisitante.id);
+      const getStats = (id: number) => grupos[grupo].find(e => e.equipo.id === id);
 
-      if (!local || !visitante) return; // Seguridad por si falta un equipo
+      const equipoLocal = equiposMap.get(partido.equipoLocal.id);
+      const equipoVisitante = equiposMap.get(partido.equipoVisitante.id);
 
-      local.PJ += 1;
-      visitante.PJ += 1;
+      if (!equipoLocal || !equipoVisitante) return;
 
-      local.GF += partido.golesLocal.length;
-      local.GC += partido.golesVisitante.length;
-
-      visitante.GF += partido.golesVisitante.length;
-      visitante.GC += partido.golesLocal.length;
-
-      if (partido.golesLocal > partido.golesVisitante) {
-        local.Pts += 3;
-        local.PG += 1;
-        visitante.PP += 1;
-      } else if (partido.golesLocal < partido.golesVisitante) {
-        visitante.Pts += 3;
-        visitante.PG += 1;
-        local.PP += 1;
-      } else {
-        local.Pts += 1;
-        visitante.Pts += 1;
-        local.PE += 1;
-        visitante.PE += 1;
+      if (!getStats(equipoLocal.id)) {
+        grupos[grupo].push({ equipo: equipoLocal, Pts: 0, PJ: 0, PG: 0, PE: 0, PP: 0, GF: 0, GC: 0, DIF: 0 });
       }
 
-      local.DIF = local.GF - local.GC;
-      visitante.DIF = visitante.GF - visitante.GC;
+      if (!getStats(equipoVisitante.id)) {
+        grupos[grupo].push({ equipo: equipoVisitante, Pts: 0, PJ: 0, PG: 0, PE: 0, PP: 0, GF: 0, GC: 0, DIF: 0 });
+      }
+
+      const localStats = getStats(equipoLocal.id);
+      const visitStats = getStats(equipoVisitante.id);
+
+      const golesLocal = partido.golesLocal.length;
+      const golesVisitante = partido.golesVisitante.length;
+
+      localStats.PJ += 1;
+      visitStats.PJ += 1;
+
+      localStats.GF += golesLocal;
+      localStats.GC += golesVisitante;
+
+      visitStats.GF += golesVisitante;
+      visitStats.GC += golesLocal;
+
+      if (golesLocal > golesVisitante) {
+        localStats.Pts += 3;
+        localStats.PG += 1;
+        visitStats.PP += 1;
+      } else if (golesLocal < golesVisitante) {
+        visitStats.Pts += 3;
+        visitStats.PG += 1;
+        localStats.PP += 1;
+      } else {
+        localStats.Pts += 1;
+        visitStats.Pts += 1;
+        localStats.PE += 1;
+        visitStats.PE += 1;
+      }
+
+      localStats.DIF = localStats.GF - localStats.GC;
+      visitStats.DIF = visitStats.GF - visitStats.GC;
     });
 
-    // Ordenar equipos según criterios
-    const tabla = Array.from(stats.values()).sort((a, b) =>
-      b.Pts - a.Pts ||
-      b.DIF - a.DIF ||
-      b.GF - a.GF
-    );
+    // Ordenar cada grupo
+    for (const grupo in grupos) {
+      grupos[grupo].sort((a, b) =>
+        b.Pts - a.Pts ||
+        b.DIF - a.DIF ||
+        b.GF - a.GF
+      );
+    }
 
-    return tabla;
+    return grupos;
   }
+
 
   async getTablaGeneral() {
     const equipos = await this.equipoRepo.find();
@@ -233,6 +255,19 @@ export class TorneoService {
     );
 
     return tabla;
+  }
+
+  async getCategoriasDelTorneo(id: number) {
+    const torneo = await this.torneoRepo.findOne({
+      where: { id },
+      relations: ['categories'],
+    });
+
+    if (!torneo) {
+      throw new NotFoundException(`Torneo con ID ${id} no encontrado`);
+    }
+
+    return torneo.categories;
   }
 
 

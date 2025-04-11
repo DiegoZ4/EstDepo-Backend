@@ -33,6 +33,12 @@ export class CreateTorneoDto {
 
   @IsArray()
   @IsOptional()
+  @ApiProperty({ description: 'Array of groups for the torneo', type: [String] })
+  readonly groups?: string[];
+
+
+  @IsArray()
+  @IsOptional()
   @ApiProperty({ description: 'The categoriesIds of the torneo' })
   readonly categoriesIds: number[];
 
@@ -53,4 +59,4 @@ export class CreateTorneoDto {
 
 }
 
-export class UpdateTorneoDto extends PartialType(CreateTorneoDto) { }
+export class UpdateTorneoDto extends PartialType(CreateTorneoDto) { } 

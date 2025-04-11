@@ -51,6 +51,13 @@ export class PartidoController {
     return this.partidoService.create(payload);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('torneo/:id')
+  async getPartidosByTorneo(@Param('id', ParseIntPipe) torneoId: number) {
+    return this.partidoService.getPartidosAgrupadosPorFecha(torneoId);
+  }
+
+
 
   @UseGuards(JwtAuthGuard)
   @Put(':id')

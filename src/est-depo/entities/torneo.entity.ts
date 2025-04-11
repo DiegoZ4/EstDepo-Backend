@@ -31,11 +31,16 @@ export class Torneo {
   @Column({ type: 'varchar', length: 255, nullable: true })
   image: string;
 
+
+
   @Column({
     type: 'varchar',
     length: 255
   })
   description: string;
+
+  @Column("simple-array", { nullable: true })
+  groups: string[];
 
 
   @OneToMany(() => Partido, (partido) => partido.torneo)

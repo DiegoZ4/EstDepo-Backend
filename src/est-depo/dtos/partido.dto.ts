@@ -23,6 +23,11 @@ export class CreatePartidoDto {
   @ApiProperty({ description: 'The equipo visitante ID' })
   readonly equipoVisitanteId: number;
 
+  @IsString()
+  @IsOptional()
+  @ApiProperty({ description: 'The group of the partido' })
+  readonly group?: string;
+
   @IsOptional()
   @IsArray()
   @ApiProperty({ description: 'The goles of the partido' })

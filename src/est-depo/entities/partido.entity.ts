@@ -35,6 +35,7 @@ export class Partido {
   equipoVisitante: Equipo;
 
 
+
   @OneToMany(() => Gol, (gol) => gol.partido, { cascade: true, eager: true })
   goles: Gol[];
 
@@ -43,6 +44,10 @@ export class Partido {
   golesVisitante: Gol[] = [];
 
   ganadorId: number | null = null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  group: string;
+
 
   @AfterLoad()
   calculateGoles() {

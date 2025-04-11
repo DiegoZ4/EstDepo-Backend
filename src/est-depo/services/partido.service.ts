@@ -54,7 +54,7 @@ export class PartidoService {
   }
 
   async create(createPartidoDto: CreatePartidoDto): Promise<Partido> {
-    const { fecha, date, equipoLocalId, equipoVisitanteId, torneoId, categoriaId, estado } = createPartidoDto;
+    const { fecha, date, equipoLocalId, equipoVisitanteId, torneoId, group, categoriaId, estado } = createPartidoDto;
 
     // Validar equipo local
     const equipoLocal = await this.equipoRepo.findOne({ where: { id: equipoLocalId } });
@@ -84,6 +84,7 @@ export class PartidoService {
     const partido = this.partidoRepo.create({
       fecha,
       date,
+      group,
       equipoLocal,
       equipoVisitante,
       torneo,
@@ -124,6 +125,32 @@ export class PartidoService {
 
     return partidos;
   }
+
+  async getPartidosAgrupadosPorFecha(torneoId: number) {
+    // Verificar que el torneo existe
+    const torneo = await this.torneoRepo.findOne({ where: { id: torneoId } });
+    if (!torneo) {
+      throw new NotFoundException(`Torneo con ID ${torneoId} no encontrado`);
+    }
+
+    // Obtener todos los partidos del torneo
+    const partidos = await this.partidoRepo.find({
+      where: { torneo: { id: torneoId } },
+      relations: ['equipoLocal', 'equipoVisitante', 'category', 'torneo'],
+      order: { fecha: 'ASC', date: 'ASC' },
+    });
+
+    // Agrupar partidos por fecha
+    const agrupados = partidos.reduce((acc, partido) => {
+      const fecha = partido.fecha;
+      if (!acc[fecha]) acc[fecha] = [];
+      acc[fecha].push(partido);
+      return acc;
+    }, {} as Record<number, Partido[]>);
+
+    return agrupados;
+  }
+
 
 
   async update(id: number, updatePartidoDto: UpdatePartidoDto): Promise<Partido> {
