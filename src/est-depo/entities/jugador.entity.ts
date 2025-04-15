@@ -38,7 +38,7 @@ export class Jugador {
   )
   image: string;
 
-  @Column({ type: 'int' })
+  @Column({ type: 'int', nullable: true, })
   edad: number;
 
 

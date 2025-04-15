@@ -105,21 +105,24 @@ export class JugadorService {
 
   async create(data: CreateJugadorDto) {
     const pais = await this.paisRepo.findOne({ where: { id: data.paisId } });
-    if (!pais) {
-      throw new Error('País no encontrado');
-    }
+    if (!pais) throw new Error('País no encontrado');
+
     const equipo = await this.equipoRepo.findOne({ where: { id: data.equipoId } });
-    if (!equipo) {
-      throw new Error('Equipo no encontrado');
-    }
+    if (!equipo) throw new Error('Equipo no encontrado');
+
+    const category = await this.categoryRepo.findOne({ where: { id: data.categoryId } });
+    if (!category) throw new Error('Categoría no encontrada');
+
     const newJugador = this.jugadorRepo.create({
       ...data,
       pais,
-      equipo
+      equipo,
+      category, // ✅ ¡esto es lo que faltaba!
     });
-    return this.jugadorRepo.save(newJugador);
 
+    return this.jugadorRepo.save(newJugador);
   }
+
   async update(id: number, updateJugadorDto: UpdateJugadorDto): Promise<Jugador> {
     const jugador = await this.jugadorRepo.findOne({ where: { id } });
 
@@ -140,9 +143,9 @@ export class JugadorService {
       });
     }
 
-    if (updateJugadorDto.categoriesId) {
+    if (updateJugadorDto.categoryId) {
       jugador.category = await this.categoryRepo.findOne({
-        where: { id: updateJugadorDto.categoriesId },
+        where: { id: updateJugadorDto.categoryId },
       });
     }
 

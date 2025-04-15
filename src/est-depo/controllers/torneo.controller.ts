@@ -21,7 +21,6 @@ import { CreateTorneoDto, UpdateTorneoDto } from '../dtos/torneo.dto';
 export class TorneoController {
   constructor(private torneoService: TorneoService) { }
 
-  @UseGuards(JwtAuthGuard)
   @Get()
   getAll() {
     return this.torneoService.findAll();

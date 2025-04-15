@@ -81,8 +81,9 @@ export class CreateJugadorDto {
   readonly equipoId: number;
 
   @IsNumber()
+  @IsNotEmpty()
   @ApiProperty({ description: 'The ID of the category' })
-  readonly categoriesId: number;
+  readonly categoryId: number;
 
 
 
