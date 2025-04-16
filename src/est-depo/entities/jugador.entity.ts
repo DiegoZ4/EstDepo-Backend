@@ -78,9 +78,11 @@ export class Jugador {
   @OneToMany(() => Gol, (gol) => gol.jugador)
   gol: Gol;
 
+
+
+
   @ManyToOne(() => Category, (category) => category.jugadores, { eager: true })
   category: Category;
-
 
   @ManyToOne(() => Pais, (pais) => pais.jugadores, { eager: true })
   pais: Pais;

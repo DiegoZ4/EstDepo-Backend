@@ -103,12 +103,22 @@ export class JugadorService {
   }
 
 
+
+
+
+
+
+
+
   async create(data: CreateJugadorDto) {
     const pais = await this.paisRepo.findOne({ where: { id: data.paisId } });
     if (!pais) throw new Error('País no encontrado');
 
     const equipo = await this.equipoRepo.findOne({ where: { id: data.equipoId } });
     if (!equipo) throw new Error('Equipo no encontrado');
+
+
+
 
     const category = await this.categoryRepo.findOne({ where: { id: data.categoriesId } });
     if (!category) throw new Error('Categoría no encontrada');
