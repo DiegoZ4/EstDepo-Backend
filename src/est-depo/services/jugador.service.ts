@@ -110,7 +110,7 @@ export class JugadorService {
     const equipo = await this.equipoRepo.findOne({ where: { id: data.equipoId } });
     if (!equipo) throw new Error('Equipo no encontrado');
 
-    const category = await this.categoryRepo.findOne({ where: { id: data.categoryId } });
+    const category = await this.categoryRepo.findOne({ where: { id: data.categoriesId } });
     if (!category) throw new Error('Categoría no encontrada');
 
     const newJugador = this.jugadorRepo.create({
@@ -143,9 +143,9 @@ export class JugadorService {
       });
     }
 
-    if (updateJugadorDto.categoryId) {
+    if (updateJugadorDto.categoriesId) {
       jugador.category = await this.categoryRepo.findOne({
-        where: { id: updateJugadorDto.categoryId },
+        where: { id: updateJugadorDto.categoriesId },
       });
     }
 
