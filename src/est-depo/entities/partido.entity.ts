@@ -34,6 +34,12 @@ export class Partido {
   @JoinColumn({ name: 'equipo_visitante_id' })
   equipoVisitante: Equipo;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  groupLocal: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  groupVisitante: string;
+
 
 
   @OneToMany(() => Gol, (gol) => gol.partido, { cascade: true, eager: true })

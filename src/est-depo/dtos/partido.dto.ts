@@ -18,6 +18,18 @@ export class CreatePartidoDto {
   @ApiProperty({ description: 'The equipo local ID' })
   readonly equipoLocalId: number;
 
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({ description: 'Grupo Local (para partidos interzonales)', required: false })
+  readonly groupLocal?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({ description: 'Grupo Visitante (para partidos interzonales)', required: false })
+  readonly groupVisitante?: string;
+
+
   @IsNumber()
   @IsNotEmpty()
   @ApiProperty({ description: 'The equipo visitante ID' })

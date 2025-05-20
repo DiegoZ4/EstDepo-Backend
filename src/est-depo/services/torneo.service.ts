@@ -89,17 +89,12 @@ export class TorneoService {
     return this.torneoRepo.save(newTorneo);
   }
 
-  async getTablaPorCategoriaAgrupada(torneoId: number, categoriaId: number) {
-    const torneo = await this.torneoRepo.findOne({
-      where: { id: torneoId },
-      relations: ['categories'],
-    });
-    if (!torneo) throw new NotFoundException(`Torneo #${torneoId} no encontrado`);
-
-    const category = torneo.categories.find(cat => cat.id === categoriaId);
-    if (!category) {
-      throw new NotFoundException(`Categoría #${categoriaId} no está en el torneo #${torneoId}`);
-    }
+  // torneo.service.ts
+  async getTablaPorCategoriaAgrupada(
+    torneoId: number,
+    categoriaId: number
+  ): Promise<Record<string, any[]>> {
+    // … tus validaciones …
 
     const partidos = await this.partidoRepo.find({
       where: {
@@ -107,83 +102,62 @@ export class TorneoService {
         torneo: { id: torneoId },
         category: { id: categoriaId },
       },
-      relations: ['equipoLocal', 'equipoVisitante',],
+      relations: ['equipoLocal', 'equipoVisitante', 'goles'],
     });
 
-    const equiposSet = new Set<number>();
+    // Primero, recabamos todas las IDs de equipos:
+    const equiposIds = new Set<number>();
     partidos.forEach(p => {
-      equiposSet.add(p.equipoLocal.id);
-      equiposSet.add(p.equipoVisitante.id);
+      equiposIds.add(p.equipoLocal.id);
+      equiposIds.add(p.equipoVisitante.id);
+    });
+    const equipos = await this.equipoRepo.findByIds(Array.from(equiposIds));
+    const eqMap = new Map(equipos.map(e => [e.id, e]));
+
+    // Vamos a acumular dos veces: una para local, otra para visitante
+    const statsPorGrupo: Record<string, any[]> = {};
+
+    partidos.forEach(p => {
+      const golesLocal = p.goles.filter(g => g.equipo.id === p.equipoLocal.id).length;
+      const golesVisit = p.goles.filter(g => g.equipo.id === p.equipoVisitante.id).length;
+
+      // Función auxiliar para inicializar y devolver el stats array de un grupo
+      const ensureGrupo = (grupo: string, equipoId: number) => {
+        if (!statsPorGrupo[grupo]) statsPorGrupo[grupo] = [];
+        let st = statsPorGrupo[grupo].find(s => s.equipo.id === equipoId);
+        if (!st) {
+          const equipo = eqMap.get(equipoId)!;
+          st = { equipo, Pts: 0, PJ: 0, PG: 0, PE: 0, PP: 0, GF: 0, GC: 0, DIF: 0 };
+          statsPorGrupo[grupo].push(st);
+        }
+        return st;
+      };
+
+      // **Local**: usa p.groupLocal o "General"
+      const gLocal = p.groupLocal?.trim() || p.group;
+      const stLocal = ensureGrupo(gLocal, p.equipoLocal.id);
+      stLocal.PJ++; stLocal.GF += golesLocal; stLocal.GC += golesVisit;
+      if (golesLocal > golesVisit) { stLocal.Pts += 3; stLocal.PG++; }
+      else if (golesLocal < golesVisit) { stLocal.PP++; }
+      else { stLocal.Pts++; stLocal.PE++; }
+      stLocal.DIF = stLocal.GF - stLocal.GC;
+
+      // **Visitante**: usa p.groupVisitante o "General"
+      const gVisit = p.groupVisitante?.trim() || p.group;
+      const stVisit = ensureGrupo(gVisit, p.equipoVisitante.id);
+      stVisit.PJ++; stVisit.GF += golesVisit; stVisit.GC += golesLocal;
+      if (golesVisit > golesLocal) { stVisit.Pts += 3; stVisit.PG++; }
+      else if (golesVisit < golesLocal) { stVisit.PP++; }
+      else { stVisit.Pts++; stVisit.PE++; }
+      stVisit.DIF = stVisit.GF - stVisit.GC;
     });
 
-    const equipos = await this.equipoRepo.findByIds(Array.from(equiposSet));
-    const equiposMap = new Map(equipos.map(eq => [eq.id, eq]));
+    // Finalmente ordena cada grupo por Pts, DIF, GF:
+    Object.values(statsPorGrupo).forEach(arr =>
+      arr.sort((a, b) => b.Pts - a.Pts || b.DIF - a.DIF || b.GF - a.GF)
+    );
 
-    const grupos: Record<string, any[]> = {};
-
-    partidos.forEach(partido => {
-      const grupo = partido.group || 'General';
-      if (!grupos[grupo]) grupos[grupo] = [];
-
-      const getStats = (id: number) => grupos[grupo].find(e => e.equipo.id === id);
-
-      const equipoLocal = equiposMap.get(partido.equipoLocal.id);
-      const equipoVisitante = equiposMap.get(partido.equipoVisitante.id);
-
-      if (!equipoLocal || !equipoVisitante) return;
-
-      if (!getStats(equipoLocal.id)) {
-        grupos[grupo].push({ equipo: equipoLocal, Pts: 0, PJ: 0, PG: 0, PE: 0, PP: 0, GF: 0, GC: 0, DIF: 0 });
-      }
-
-      if (!getStats(equipoVisitante.id)) {
-        grupos[grupo].push({ equipo: equipoVisitante, Pts: 0, PJ: 0, PG: 0, PE: 0, PP: 0, GF: 0, GC: 0, DIF: 0 });
-      }
-
-      const localStats = getStats(equipoLocal.id);
-      const visitStats = getStats(equipoVisitante.id);
-
-      const golesLocal = partido.golesLocal.length;
-      const golesVisitante = partido.golesVisitante.length;
-
-      localStats.PJ += 1;
-      visitStats.PJ += 1;
-
-      localStats.GF += golesLocal;
-      localStats.GC += golesVisitante;
-
-      visitStats.GF += golesVisitante;
-      visitStats.GC += golesLocal;
-
-      if (golesLocal > golesVisitante) {
-        localStats.Pts += 3;
-        localStats.PG += 1;
-        visitStats.PP += 1;
-      } else if (golesLocal < golesVisitante) {
-        visitStats.Pts += 3;
-        visitStats.PG += 1;
-        localStats.PP += 1;
-      } else {
-        localStats.Pts += 1;
-        visitStats.Pts += 1;
-        localStats.PE += 1;
-        visitStats.PE += 1;
-      }
-
-      localStats.DIF = localStats.GF - localStats.GC;
-      visitStats.DIF = visitStats.GF - visitStats.GC;
-    });
-
-    // Ordenar cada grupo
-    for (const grupo in grupos) {
-      grupos[grupo].sort((a, b) =>
-        b.Pts - a.Pts ||
-        b.DIF - a.DIF ||
-        b.GF - a.GF
-      );
-    }
-
-    return grupos;
+    return statsPorGrupo;
   }
 
 

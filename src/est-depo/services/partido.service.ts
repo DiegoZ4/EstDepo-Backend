@@ -54,7 +54,7 @@ export class PartidoService {
   }
 
   async create(createPartidoDto: CreatePartidoDto): Promise<Partido> {
-    const { fecha, date, equipoLocalId, equipoVisitanteId, torneoId, group, categoriaId, estado } = createPartidoDto;
+    const { fecha, date, equipoLocalId, equipoVisitanteId, torneoId, group, categoriaId, estado, groupLocal, groupVisitante } = createPartidoDto;
 
     // Validar equipo local
     const equipoLocal = await this.equipoRepo.findOne({ where: { id: equipoLocalId } });
@@ -90,6 +90,8 @@ export class PartidoService {
       torneo,
       category,
       estado,
+      groupLocal,
+      groupVisitante,
     });
 
     // Guardar en la base de datos
@@ -155,42 +157,32 @@ export class PartidoService {
 
   async update(id: number, updatePartidoDto: UpdatePartidoDto): Promise<Partido> {
     const partido = await this.partidoRepo.findOne({ where: { id } });
+    if (!partido) throw new NotFoundException(`Partido #${id} no encontrado`);
 
-    if (!partido) {
-      throw new NotFoundException('Partido not found');
-    }
-
-    // Convertir IDs a entidades
+    // Si vienen nuevos valores de relación, los reasignas…
     if (updatePartidoDto.equipoLocalId) {
-      partido.equipoLocal = await this.equipoRepo.findOne({
-        where: { id: updatePartidoDto.equipoLocalId },
-      });
+      partido.equipoLocal = await this.equipoRepo.findOne(updatePartidoDto.equipoLocalId);
     }
-
     if (updatePartidoDto.equipoVisitanteId) {
-      partido.equipoVisitante = await this.equipoRepo.findOne({
-        where: { id: updatePartidoDto.equipoVisitanteId },
-      });
+      partido.equipoVisitante = await this.equipoRepo.findOne(updatePartidoDto.equipoVisitanteId);
     }
-
     if (updatePartidoDto.torneoId) {
-      partido.torneo = await this.torneoRepo.findOne({
-        where: { id: updatePartidoDto.torneoId },
-      });
+      partido.torneo = await this.torneoRepo.findOne(updatePartidoDto.torneoId);
     }
-
     if (updatePartidoDto.categoriaId) {
-      partido.category = await this.categoryRepo.findOne({
-        where: { id: updatePartidoDto.categoriaId },
-      });
+      partido.category = await this.categoryRepo.findOne(updatePartidoDto.categoriaId);
     }
 
-    // Actualizar valores
-    Object.assign(partido, updatePartidoDto);
+    // Y luego mezclas el resto de los campos (incluyendo los dos nuevos)
+    Object.assign(partido, {
+      ...updatePartidoDto,
+      group: updatePartidoDto.group,
+      groupLocal: updatePartidoDto.groupLocal,
+      groupVisitante: updatePartidoDto.groupVisitante,
+    });
 
     return this.partidoRepo.save(partido);
   }
-
 
 
 
