@@ -15,6 +15,7 @@ import { Torneo } from './torneo.entity';
 import { Category } from './category.entity';
 import { Gol } from './goles.entity';
 
+
 @Entity()
 export class Partido {
   @PrimaryGeneratedColumn()

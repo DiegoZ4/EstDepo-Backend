@@ -53,6 +53,7 @@ export class PartidoService {
     return partido;
   }
 
+
   async create(createPartidoDto: CreatePartidoDto): Promise<Partido> {
     const { fecha, date, equipoLocalId, equipoVisitanteId, torneoId, group, categoriaId, estado, groupLocal, groupVisitante } = createPartidoDto;
 

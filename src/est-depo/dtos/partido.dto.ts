@@ -2,6 +2,7 @@ import { IsString, IsNotEmpty, IsNumber, IsOptional, IsDate, IsArray } from 'cla
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { Equipo } from '../entities/equipo.entity';
 
+
 export class CreatePartidoDto {
   @IsString()
   @IsNotEmpty()
