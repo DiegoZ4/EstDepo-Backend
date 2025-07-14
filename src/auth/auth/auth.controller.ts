@@ -44,4 +44,17 @@ export class AuthController {
     // Devuelve el JWT
     return { access_token: result.access_token };
   }
+
+  // Endpoint para renovar tokens usando refresh token
+  @Post('refresh')
+  async refreshTokens(@Body() body: { refresh_token: string }) {
+    return this.authService.refreshTokens(body.refresh_token);
+  }
+
+  // Endpoint para logout
+  @Post('logout')
+  async logout(@Body() body: { userId: string }) {
+    await this.authService.logout(body.userId);
+    return { message: 'Logout exitoso' };
+  }
 }

@@ -25,6 +25,9 @@ export class User {
   @Column({ type: 'date', nullable: true })
   bornDate?: Date;
 
+  @Column({ nullable: true })
+  refreshToken?: string;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

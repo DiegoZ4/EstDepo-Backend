@@ -5,6 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { OAuth2Client } from 'google-auth-library';
 import { UserRole, CreateUserDto } from '../../est-depo/dtos/user.dto';
+import { jwtConstants } from '../constants';
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 
@@ -36,11 +37,28 @@ export class AuthService {
   }
 
 
-  // Genera el token JWT
+  // Genera los tokens JWT (access + refresh)
   async login(user: any) {
-    const payload = { email: user.email, name: user.name, rol: user.rol, sub: user.id };
+    const payload = {
+      email: user.email,
+      name: user.name,
+      rol: user.rol,
+      sub: user.id
+    };
+
+    const accessToken = this.jwtService.sign(payload);
+    const refreshToken = this.jwtService.sign(payload, {
+      secret: jwtConstants.secret,
+      expiresIn: '7d', // Refresh token dura 7 días
+    });
+
+    // Hashear y guardar el refresh token en la base de datos
+    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+    await this.usersService.updateRefreshToken(user.id, hashedRefreshToken);
+
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token: accessToken,
+      refresh_token: refreshToken,
     };
   }
 
@@ -84,5 +102,37 @@ export class AuthService {
       });
     }
     return this.login(user);
+  }
+
+  // Valida y renueva tokens usando refresh token
+  async refreshTokens(refreshToken: string): Promise<any> {
+    try {
+      // Verificar que el refresh token sea válido
+      const payload = this.jwtService.verify(refreshToken, {
+        secret: jwtConstants.secret,
+      });
+
+      // Obtener el usuario por ID
+      const user = await this.usersService.findOne(payload.sub);
+      if (!user || !user.refreshToken) {
+        throw new UnauthorizedException('Refresh token inválido');
+      }
+
+      // Verificar que el refresh token coincida con el almacenado
+      const refreshTokenMatches = await bcrypt.compare(refreshToken, user.refreshToken);
+      if (!refreshTokenMatches) {
+        throw new UnauthorizedException('Refresh token inválido');
+      }
+
+      // Generar nuevos tokens
+      return this.login(user);
+    } catch (error) {
+      throw new UnauthorizedException('Refresh token inválido o expirado');
+    }
+  }
+
+  // Logout - invalida el refresh token
+  async logout(userId: string): Promise<void> {
+    await this.usersService.updateRefreshToken(userId, null);
   }
 }

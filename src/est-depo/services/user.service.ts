@@ -57,6 +57,11 @@ export class UserService {
     return this.userRepository.save(updatedUser);
   }
 
+  // Actualiza el refresh token del usuario
+  async updateRefreshToken(userId: string, refreshToken: string | null): Promise<void> {
+    await this.userRepository.update(userId, { refreshToken });
+  }
+
   // Elimina un usuario por su id
   async remove(id: string): Promise<void> {
     const result = await this.userRepository.delete(id);
