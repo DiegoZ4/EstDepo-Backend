@@ -28,14 +28,16 @@ export class TorneoService {
 
   findAll() {
     return this.torneoRepo.find({
-      relations: ['categories', 'pais', 'partidos'],
+      // Relaciones limitadas para evitar referencias circulares
+      relations: ['pais'],
     });
   }
 
 
   async findOne(id: number) {
     const torneo = await this.torneoRepo.findOne(id, {
-      relations: ['pais', 'categories', 'partidos'],
+      // Relaciones limitadas para evitar referencias circulares
+      relations: ['pais'],
     });
 
     if (!torneo) {

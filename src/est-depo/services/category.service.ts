@@ -30,14 +30,16 @@ export class CategoryService {
 
   async findAll(): Promise<Category[]> {
     return this.categoryRepository.find({
-      relations: ['torneo', 'equipos', 'jugadores', 'partidos'],
+      // Relaciones comentadas para evitar referencias circulares que causan out of memory
+      // relations: ['torneo', 'equipos', 'jugadores', 'partidos'],
     });
   }
 
   async findOne(id: number): Promise<Category> {
     const category = await this.categoryRepository.findOne({
       where: { id },
-      relations: ['torneo', 'equipos', 'jugadores', 'partidos'],
+      // Relaciones comentadas para evitar referencias circulares que causan out of memory
+      // relations: ['torneo', 'equipos', 'jugadores', 'partidos'],
     });
 
     if (!category) {
