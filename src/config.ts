@@ -14,6 +14,16 @@ export default registerAs("config", () => {
       host: process.env.POSTGRES_HOST,
     },
     apiKey: process.env.API_KEY,
-
+    publicUrl: process.env.PUBLIC_URL,
+    frontendUrl: process.env.FRONTEND_URL,
+    mercadoPago: {
+      accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN,
+      publicKey: process.env.MERCADOPAGO_PUBLIC_KEY,
+      preapprovalPlanId: process.env.MERCADOPAGO_PREAPPROVAL_PLAN_ID,
+    },
+    subscription: {
+      amount: parseInt(process.env.SUBSCRIPTION_AMOUNT || '100', 10),
+      mode: process.env.SUBSCRIPTION_MODE || 'test', // 'test' o 'prod'
+    },
   };
 });

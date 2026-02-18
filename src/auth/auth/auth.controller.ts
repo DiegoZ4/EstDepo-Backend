@@ -46,7 +46,7 @@ export class AuthController {
   }
 
   // Endpoint para renovar tokens usando refresh token
-  @Post('refresh')
+ f
   async refreshTokens(@Body() body: { refresh_token: string }) {
     return this.authService.refreshTokens(body.refresh_token);
   }

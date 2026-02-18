@@ -10,6 +10,7 @@ import { DatabaseModule } from './database/database.module';
 import { enviroments } from './enviroments';
 import { EstDepoModule } from './est-depo/est-depo.module';
 import { AuthModule } from './auth/auth.module';
+import { SubscriptionModule } from './subscriptions/subscription.module';
 import config from './config';
 
 
@@ -30,11 +31,16 @@ import config from './config';
         POSTGRES_PASSWORD: Joi.string().required(),
         POSTGRES_PORT: Joi.number().required(),
         POSTGRES_HOST: Joi.string().required(),
+        MERCADOPAGO_ACCESS_TOKEN: Joi.string().optional(),
+        MERCADOPAGO_PUBLIC_KEY: Joi.string().optional(),
+        MERCADOPAGO_PREAPPROVAL_PLAN_ID: Joi.string().optional(),
+        PUBLIC_URL: Joi.string().optional(),
       }),
     }),
     DatabaseModule,
     EstDepoModule,
     AuthModule,
+    SubscriptionModule,
   ],
   controllers: [AppController],
   providers: [
