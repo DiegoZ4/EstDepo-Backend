@@ -384,7 +384,37 @@ export class SubscriptionService {
           days_since_start: daysSinceStart,
         };
       } else if (newStatus === 'cancelled' && daysSinceStart >= 10) {
-        // CASO 2: Más de 10 días → cancelar al final del mes
+        // CASO 2: Más de 10 días → verificar si ya pasó la fecha de renovación
+        console.log('📆 Verificando fecha de renovación para cancelación');
+
+        const now = new Date();
+        const endDate = user.subscriptionEndDate ? new Date(user.subscriptionEndDate) : null;
+
+        // Si la fecha de renovación ya pasó o es hoy, cancelar inmediatamente
+        if (endDate && now >= endDate) {
+          console.log('🔚 La fecha de renovación ya llegó, cancelando inmediatamente');
+          
+          // Cancelar suscripción en MP
+          await this.preApproval.update({
+            id: user.subscriptionId,
+            body: { status: 'cancelled' },
+          });
+
+          user.subscriptionStatus = SubscriptionStatus.CANCELLED;
+          user.rol = UserRole.FREE_USER;
+          user.pendingCancellation = false;
+          await this.userRepository.save(user);
+
+          return {
+            success: true,
+            status: 'cancelled',
+            refunded: false,
+            message: 'Suscripción cancelada. El periodo de suscripción ha finalizado.',
+            days_since_start: daysSinceStart,
+          };
+        }
+
+        // Si aún falta para la renovación, programar cancelación
         console.log('📆 Cancelación programada para fin de mes');
 
         user.pendingCancellation = true;
@@ -395,8 +425,8 @@ export class SubscriptionService {
           status: 'pending_cancellation',
           refunded: false,
           message: 'La suscripción se cancelará al final del periodo actual. Seguirás teniendo acceso hasta el ' + 
-                   (user.subscriptionEndDate ? new Date(user.subscriptionEndDate).toLocaleDateString('es-AR') : 'fin del mes'),
-          cancellation_date: user.subscriptionEndDate,
+                   (endDate ? endDate.toLocaleDateString('es-AR') : 'fin del mes'),
+          cancellation_date: endDate,
           days_since_start: daysSinceStart,
         };
 
@@ -551,12 +581,38 @@ export class SubscriptionService {
         
         console.log('✅ Usuario encontrado:', user.email);
         
-        // Guardar el payment_id solo si el pago fue aprobado
+        // Guardar el payment_id y extender periodo si el pago fue aprobado
         if (payment.status === 'approved' || payment.status === 'authorized') {
           user.lastPaymentId = paymentId.toString();
+          
+          // Activar suscripción si estaba inactiva
+          if (user.subscriptionStatus !== SubscriptionStatus.ACTIVE) {
+            user.subscriptionStatus = SubscriptionStatus.ACTIVE;
+            user.rol = UserRole.SUBS_USER;
+            console.log('✅ Suscripción activada por pago aprobado');
+          }
+          
+          // Extender periodo de suscripción
+          const isTestMode = this.configService.subscription.mode === 'test';
+          const currentEndDate = user.subscriptionEndDate ? new Date(user.subscriptionEndDate) : new Date();
+          const now = new Date();
+          
+          // Si la fecha de fin ya pasó, empezar desde ahora
+          const baseDate = currentEndDate > now ? currentEndDate : now;
+          const newEndDate = new Date(baseDate);
+          
+          if (isTestMode) {
+            newEndDate.setDate(newEndDate.getDate() + 1);
+          } else {
+            newEndDate.setMonth(newEndDate.getMonth() + 1);
+          }
+          
+          user.subscriptionEndDate = newEndDate;
+          console.log(`📅 Periodo extendido hasta: ${newEndDate.toLocaleDateString('es-AR')}`);
+          
           await this.userRepository.save(user);
           console.log(
-            '✅ Payment ID guardado:',
+            '✅ Payment ID guardado y periodo extendido:',
             paymentId,
             'para usuario:',
             user.email,
@@ -588,9 +644,35 @@ export class SubscriptionService {
         
         if (user && paymentId) {
           user.lastPaymentId = paymentId.toString();
+          
+          // Activar suscripción si estaba inactiva
+          if (user.subscriptionStatus !== SubscriptionStatus.ACTIVE) {
+            user.subscriptionStatus = SubscriptionStatus.ACTIVE;
+            user.rol = UserRole.SUBS_USER;
+            console.log('✅ Suscripción activada por pago autorizado');
+          }
+          
+          // Extender periodo de suscripción
+          const isTestMode = this.configService.subscription.mode === 'test';
+          const currentEndDate = user.subscriptionEndDate ? new Date(user.subscriptionEndDate) : new Date();
+          const now = new Date();
+          
+          // Si la fecha de fin ya pasó, empezar desde ahora
+          const baseDate = currentEndDate > now ? currentEndDate : now;
+          const newEndDate = new Date(baseDate);
+          
+          if (isTestMode) {
+            newEndDate.setDate(newEndDate.getDate() + 1);
+          } else {
+            newEndDate.setMonth(newEndDate.getMonth() + 1);
+          }
+          
+          user.subscriptionEndDate = newEndDate;
+          console.log(`📅 Periodo extendido hasta: ${newEndDate.toLocaleDateString('es-AR')}`);
+          
           await this.userRepository.save(user);
           console.log(
-            '✅ Payment ID guardado:',
+            '✅ Payment ID guardado y periodo extendido:',
             paymentId,
             'para usuario:',
             user.email,
