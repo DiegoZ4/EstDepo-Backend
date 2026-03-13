@@ -46,7 +46,7 @@ export class AuthController {
   }
 
   // Endpoint para renovar tokens usando refresh token
- f
+  @Post('refresh')
   async refreshTokens(@Body() body: { refresh_token: string }) {
     return this.authService.refreshTokens(body.refresh_token);
   }
@@ -56,5 +56,17 @@ export class AuthController {
   async logout(@Body() body: { userId: string }) {
     await this.authService.logout(body.userId);
     return { message: 'Logout exitoso' };
+  }
+
+  // Endpoint para solicitar recuperación de contraseña
+  @Post('forgot-password')
+  async forgotPassword(@Body() body: { email: string }) {
+    return this.authService.forgotPassword(body.email);
+  }
+
+  // Endpoint para restablecer la contraseña con el token
+  @Post('reset-password')
+  async resetPassword(@Body() body: { token: string; newPassword: string }) {
+    return this.authService.resetPassword(body.token, body.newPassword);
   }
 }

@@ -15,6 +15,7 @@ const API_KEY_PROD = "PROD123456789";
       inject: [config.KEY],
       useFactory: (ConfigService: ConfigType<typeof config>) => {
         const { user, host, dbName, password, port } = ConfigService.postgres;
+        console.log('🔵 TypeORM Config:', { host, port, user, database: dbName });
         return {
           type: 'postgres',
           host,
@@ -22,7 +23,7 @@ const API_KEY_PROD = "PROD123456789";
           username: user,
           password,
           database: dbName,
-          synchronize: false,
+          synchronize: true, // Crear tablas automáticamente
           autoLoadEntities: true,
         };
       },
@@ -37,6 +38,7 @@ const API_KEY_PROD = "PROD123456789";
       provide: 'PG',
       useFactory: (ConfigService: ConfigType<typeof config>) => {
         const { user, host, dbName, password, port } = ConfigService.postgres;
+        console.log('🔵 PG Client Config:', { host, port, user, database: dbName });
         const client = new Client({
           user,
           host,

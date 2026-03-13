@@ -62,6 +62,29 @@ export class UserService {
     await this.userRepository.update(userId, { refreshToken });
   }
 
+  // Guarda el token de recuperación de contraseña
+  async setResetPasswordToken(userId: string, token: string, expires: Date): Promise<void> {
+    await this.userRepository.update(userId, {
+      resetPasswordToken: token,
+      resetPasswordExpires: expires,
+    });
+  }
+
+  // Busca un usuario por su token de reset
+  async findByResetToken(token: string): Promise<User | undefined> {
+    return this.userRepository.findOne({ where: { resetPasswordToken: token } });
+  }
+
+  // Actualiza la contraseña y limpia el token de reset
+  async resetPassword(userId: string, newPassword: string): Promise<void> {
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await this.userRepository.update(userId, {
+      password: hashedPassword,
+      resetPasswordToken: null,
+      resetPasswordExpires: null,
+    });
+  }
+
   // Elimina un usuario por su id
   async remove(id: string): Promise<void> {
     const result = await this.userRepository.delete(id);

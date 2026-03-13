@@ -1,8 +1,10 @@
 // auth.service.ts
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { UserService } from '../../est-depo/services/user.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
+import * as nodemailer from 'nodemailer';
 import { OAuth2Client } from 'google-auth-library';
 import { UserRole, CreateUserDto } from '../../est-depo/dtos/user.dto';
 import { jwtConstants } from '../constants';
@@ -134,5 +136,84 @@ export class AuthService {
   // Logout - invalida el refresh token
   async logout(userId: string): Promise<void> {
     await this.usersService.updateRefreshToken(userId, null);
+  }
+
+  // Envía un email con el link de recuperación de contraseña
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      // No revelamos si el email existe o no (seguridad)
+      return { message: 'Si el email existe, se envió un link de recuperación' };
+    }
+
+    // Generar token único
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const expires = new Date();
+    expires.setHours(expires.getHours() + 1); // Token válido por 1 hora
+
+    // Guardar token en la DB
+    await this.usersService.setResetPasswordToken(user.id, resetToken, expires);
+
+    // Construir el link de recuperación
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
+
+    // Configurar el transporter de nodemailer
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
+      },
+    });
+
+    // Enviar el email
+    await transporter.sendMail({
+      from: `"EstDepo" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: 'Recuperación de contraseña - EstDepo',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #333;">Recuperación de contraseña</h2>
+          <p>Hola <strong>${user.name}</strong>,</p>
+          <p>Recibimos una solicitud para restablecer tu contraseña. Hacé clic en el siguiente botón:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetLink}" 
+               style="background-color: #4CAF50; color: white; padding: 14px 28px; text-decoration: none; border-radius: 5px; font-size: 16px;">
+              Restablecer contraseña
+            </a>
+          </div>
+          <p style="color: #666; font-size: 14px;">Este link expira en <strong>1 hora</strong>.</p>
+          <p style="color: #666; font-size: 14px;">Si no solicitaste este cambio, ignorá este email.</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+          <p style="color: #999; font-size: 12px;">EstDepo - Estadísticas Deportivas</p>
+        </div>
+      `,
+    });
+
+    return { message: 'Si el email existe, se envió un link de recuperación' };
+  }
+
+  // Restablece la contraseña usando el token
+  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    const user = await this.usersService.findByResetToken(token);
+
+    if (!user) {
+      throw new BadRequestException('Token inválido o expirado');
+    }
+
+    // Verificar que el token no haya expirado
+    if (user.resetPasswordExpires && new Date() > new Date(user.resetPasswordExpires)) {
+      throw new BadRequestException('Token expirado. Solicitá uno nuevo.');
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      throw new BadRequestException('La contraseña debe tener al menos 6 caracteres');
+    }
+
+    // Actualizar la contraseña
+    await this.usersService.resetPassword(user.id, newPassword);
+
+    return { message: 'Contraseña actualizada correctamente' };
   }
 }

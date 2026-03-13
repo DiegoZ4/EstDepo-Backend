@@ -59,6 +59,12 @@ export class User {
   @Column({ nullable: true, name: 'last_payment_id' })
   lastPaymentId?: string;
 
+  @Column({ nullable: true, name: 'reset_password_token' })
+  resetPasswordToken?: string;
+
+  @Column({ type: 'timestamp', nullable: true, name: 'reset_password_expires' })
+  resetPasswordExpires?: Date;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
