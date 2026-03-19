@@ -6,7 +6,6 @@ import {
   MercadoPagoConfig,
   PreApproval,
   PreApprovalPlan,
-  PaymentRefund,
   Payment,
 } from 'mercadopago';
 
@@ -20,7 +19,6 @@ export class SubscriptionService {
   private mpClient: MercadoPagoConfig;
   private preApproval: PreApproval;
   private preApprovalPlan: PreApprovalPlan;
-  private paymentRefund: PaymentRefund;
   private payment: Payment;
 
   constructor(
@@ -35,7 +33,6 @@ export class SubscriptionService {
       });
       this.preApproval = new PreApproval(this.mpClient);
       this.preApprovalPlan = new PreApprovalPlan(this.mpClient);
-      this.paymentRefund = new PaymentRefund(this.mpClient);
       this.payment = new Payment(this.mpClient);
     }
   }
@@ -133,13 +130,13 @@ export class SubscriptionService {
 
       // Guardar el ID de suscripción y fechas iniciales en el usuario
       user.subscriptionId = subscription.id;
-      
+
       // Setear fecha de inicio inmediatamente (se actualizará con webhook si cambia)
-      const startDate = subscription.date_created 
-        ? new Date(subscription.date_created) 
+      const startDate = subscription.date_created
+        ? new Date(subscription.date_created)
         : new Date();
       user.subscriptionStartDate = startDate;
-      
+
       // Calcular fecha de fin (próximo pago) según modo
       const endDate = new Date(startDate);
       if (isTestMode) {
@@ -148,10 +145,10 @@ export class SubscriptionService {
         endDate.setMonth(endDate.getMonth() + 1);
       }
       user.subscriptionEndDate = endDate;
-      
+
       console.log('📅 Fecha de inicio seteada:', user.subscriptionStartDate);
       console.log('📅 Fecha de próximo pago:', user.subscriptionEndDate);
-      
+
       await this.userRepository.save(user);
 
       return {
@@ -271,8 +268,8 @@ export class SubscriptionService {
 
   /**
    * Cancela o pausa la suscripción (1.6)
-   * - Si pasaron menos de 10 días: cancela inmediatamente Y reembolsa
-   * - Si pasaron más de 10 días: marca pendingCancellation (cancela al final del mes)
+   * Al cancelar, el usuario mantiene acceso hasta el final del periodo actual.
+   * No se realizan reembolsos.
    */
   async cancelSubscription(userId: string, newStatus: 'cancelled' | 'paused') {
     if (!this.mpClient) {
@@ -295,110 +292,19 @@ export class SubscriptionService {
     }
 
     try {
-      // Calcular días desde el inicio de la suscripción
-      const daysSinceStart = user.subscriptionStartDate
-        ? Math.floor(
-            (Date.now() - new Date(user.subscriptionStartDate).getTime()) /
-              (1000 * 60 * 60 * 24),
-          )
-        : 999; // Si no hay fecha, asumimos que pasaron muchos días
+      if (newStatus === 'cancelled') {
+        const now = new Date();
+        const endDate = user.subscriptionEndDate ? new Date(user.subscriptionEndDate) : null;
 
-      console.log(`📅 Días desde inicio: ${daysSinceStart}`);
-
-      if (newStatus === 'cancelled' && daysSinceStart < 10) {
-        // CASO 1: Menos de 10 días → cancelar inmediatamente + reembolsar
-        console.log('💰 Cancelación con reembolso (< 10 días)');
-
-        // Cancelar suscripción en MP
+        // Cancelar la suscripción en MP para que no se renueve
         await this.preApproval.update({
           id: user.subscriptionId,
           body: { status: 'cancelled' },
         });
 
-        // PROCESAR REEMBOLSO si hay un payment_id guardado
-        let refundStatus = 'not_processed';
-        let refundMessage = '';
-        let paymentIdToRefund = user.lastPaymentId;
-
-        // Si no hay payment_id guardado, intentar buscarlo en MP
-        if (!paymentIdToRefund) {
-          console.log('⚠️ No hay payment_id guardado, buscando en MP...');
-          try {
-            const subscription = await this.preApproval.get({
-              id: user.subscriptionId,
-            });
-            
-            // Buscar pagos asociados a la suscripción
-            if (subscription.status === 'authorized' || subscription.status === 'cancelled') {
-              // Intentar buscar pagos por subscription_id (esto puede variar según la API de MP)
-              console.log('🔍 Suscripción encontrada, pero MP no expone los pagos directamente en PreApproval');
-              console.log('💡 Recomendación: Esperar al webhook de subscription_authorized_payment para capturar el payment_id');
-              refundMessage = 'No se pudo procesar el reembolso. El pago aún no ha sido registrado en el sistema. Intenta más tarde o contacta soporte.';
-            }
-          } catch (error) {
-            console.error('❌ Error buscando pago en MP:', error);
-          }
-        }
-
-        if (paymentIdToRefund) {
-          try {
-            console.log(
-              '💳 Procesando reembolso del pago:',
-              paymentIdToRefund,
-            );
-
-            const refund = await this.paymentRefund.create({
-              payment_id: parseInt(paymentIdToRefund),
-              body: {},
-            });
-
-            if (refund.status === 'approved') {
-              refundStatus = 'approved';
-              refundMessage = 'Reembolso procesado exitosamente';
-              console.log('✅ Reembolso aprobado:', refund.id);
-            } else {
-              refundStatus = refund.status;
-              refundMessage = `Reembolso en estado: ${refund.status}`;
-              console.log('⚠️ Reembolso estado:', refund.status);
-            }
-          } catch (refundError) {
-            console.error('❌ Error procesando reembolso:', refundError);
-            refundStatus = 'error';
-            refundMessage = `Error al procesar reembolso: ${refundError.message}`;
-          }
-        } else if (!refundMessage) {
-          console.log('⚠️ No se pudo encontrar un payment_id para reembolsar');
-          refundMessage = 'No se encontró un pago reciente para reembolsar. El webhook de pago aún no ha llegado.';
-        }
-
-        user.subscriptionStatus = SubscriptionStatus.CANCELLED;
-        user.rol = UserRole.FREE_USER;
-        user.pendingCancellation = false;
-        await this.userRepository.save(user);
-
-        return {
-          success: true,
-          status: 'cancelled',
-          refund_status: refundStatus,
-          message: `Suscripción cancelada. ${refundMessage}`,
-          days_since_start: daysSinceStart,
-        };
-      } else if (newStatus === 'cancelled' && daysSinceStart >= 10) {
-        // CASO 2: Más de 10 días → verificar si ya pasó la fecha de renovación
-        console.log('📆 Verificando fecha de renovación para cancelación');
-
-        const now = new Date();
-        const endDate = user.subscriptionEndDate ? new Date(user.subscriptionEndDate) : null;
-
-        // Si la fecha de renovación ya pasó o es hoy, cancelar inmediatamente
-        if (endDate && now >= endDate) {
-          console.log('🔚 La fecha de renovación ya llegó, cancelando inmediatamente');
-          
-          // Cancelar suscripción en MP
-          await this.preApproval.update({
-            id: user.subscriptionId,
-            body: { status: 'cancelled' },
-          });
+        // Si la fecha de fin ya pasó, cancelar inmediatamente
+        if (!endDate || now >= endDate) {
+          console.log('🔚 Periodo finalizado, cancelando inmediatamente');
 
           user.subscriptionStatus = SubscriptionStatus.CANCELLED;
           user.rol = UserRole.FREE_USER;
@@ -408,14 +314,12 @@ export class SubscriptionService {
           return {
             success: true,
             status: 'cancelled',
-            refunded: false,
-            message: 'Suscripción cancelada. El periodo de suscripción ha finalizado.',
-            days_since_start: daysSinceStart,
+            message: 'Suscripción cancelada.',
           };
         }
 
-        // Si aún falta para la renovación, programar cancelación
-        console.log('📆 Cancelación programada para fin de mes');
+        // Si aún tiene tiempo restante, marcar como pendiente de cancelación
+        console.log('📆 Cancelación programada para:', endDate.toLocaleDateString('es-AR'));
 
         user.pendingCancellation = true;
         await this.userRepository.save(user);
@@ -423,15 +327,12 @@ export class SubscriptionService {
         return {
           success: true,
           status: 'pending_cancellation',
-          refunded: false,
-          message: 'La suscripción se cancelará al final del periodo actual. Seguirás teniendo acceso hasta el ' + 
-                   (endDate ? endDate.toLocaleDateString('es-AR') : 'fin del mes'),
+          message: 'La suscripción se cancelará al final del periodo actual. Seguís teniendo acceso hasta el ' +
+            endDate.toLocaleDateString('es-AR'),
           cancellation_date: endDate,
-          days_since_start: daysSinceStart,
         };
 
       } else if (newStatus === 'paused') {
-        // CASO 3: Pausar suscripción
         await this.preApproval.update({
           id: user.subscriptionId,
           body: { status: 'paused' },
@@ -532,37 +433,37 @@ export class SubscriptionService {
     // 1. subscription_preapproval: cambios en la suscripción (autorizar, cancelar, pausar)
     // 2. subscription_authorized_payment: pagos recurrentes (menos común)
     // 3. payment: pagos en general (action: payment.created, payment.updated)
-    
+
     // CASO 1: Webhook de tipo "payment" (lo que MP envía para suscripciones)
     if (type === 'payment' && (action === 'payment.created' || action === 'payment.updated')) {
       const paymentId = data?.id;
-      
+
       if (!paymentId) {
         console.error('❌ Payment ID no encontrado en webhook de pago');
         return { success: false, message: 'Payment ID no encontrado' };
       }
-      
+
       console.log('💳 Webhook de pago recibido - Payment ID:', paymentId);
-      
+
       try {
         // Obtener detalles del pago desde MP para sacar el preapproval_id
         const payment = await this.payment.get({ id: paymentId.toString() });
-        
+
         console.log('📊 Detalles del pago obtenidos:');
         console.log('   Status:', payment.status);
         console.log('   External reference:', payment.external_reference);
         console.log('   Metadata:', JSON.stringify(payment.metadata));
-        
+
         // El preapproval_id o user_id puede estar en external_reference
         const externalRef = payment.external_reference || payment.metadata?.preapproval_id;
-        
+
         if (!externalRef) {
           console.error('⚠️ No se pudo obtener external_reference del pago');
           return { success: false, message: 'External reference no encontrado en el pago' };
         }
-        
+
         console.log('🔗 External reference:', externalRef);
-        
+
         // Detectar formato: si empieza con "user_", es un user_id, sino es preapproval_id
         let user;
         if (externalRef.startsWith('user_')) {
@@ -573,43 +474,43 @@ export class SubscriptionService {
           console.log('🔍 Buscando usuario por subscriptionId:', externalRef);
           user = await this.userRepository.findOne({ where: { subscriptionId: externalRef } });
         }
-        
+
         if (!user) {
           console.error('❌ Usuario no encontrado para external_reference:', externalRef);
           return { success: false, message: 'Usuario no encontrado' };
         }
-        
+
         console.log('✅ Usuario encontrado:', user.email);
-        
+
         // Guardar el payment_id y extender periodo si el pago fue aprobado
         if (payment.status === 'approved' || payment.status === 'authorized') {
           user.lastPaymentId = paymentId.toString();
-          
+
           // Activar suscripción si estaba inactiva
           if (user.subscriptionStatus !== SubscriptionStatus.ACTIVE) {
             user.subscriptionStatus = SubscriptionStatus.ACTIVE;
             user.rol = UserRole.SUBS_USER;
             console.log('✅ Suscripción activada por pago aprobado');
           }
-          
+
           // Extender periodo de suscripción
           const isTestMode = this.configService.subscription.mode === 'test';
           const currentEndDate = user.subscriptionEndDate ? new Date(user.subscriptionEndDate) : new Date();
           const now = new Date();
-          
+
           // Si la fecha de fin ya pasó, empezar desde ahora
           const baseDate = currentEndDate > now ? currentEndDate : now;
           const newEndDate = new Date(baseDate);
-          
+
           if (isTestMode) {
             newEndDate.setDate(newEndDate.getDate() + 1);
           } else {
             newEndDate.setMonth(newEndDate.getMonth() + 1);
           }
-          
+
           user.subscriptionEndDate = newEndDate;
           console.log(`📅 Periodo extendido hasta: ${newEndDate.toLocaleDateString('es-AR')}`);
-          
+
           await this.userRepository.save(user);
           console.log(
             '✅ Payment ID guardado y periodo extendido:',
@@ -620,56 +521,56 @@ export class SubscriptionService {
         } else {
           console.log('⚠️ Pago no aprobado, status:', payment.status);
         }
-        
+
         return { success: true, message: 'Payment ID procesado correctamente' };
       } catch (error) {
         console.error('❌ Error procesando webhook de pago:', error);
         return { success: false, message: `Error: ${error.message}` };
       }
     }
-    
+
     // CASO 2: Capturar payment_id de pagos autorizados (formato alternativo)
     if (type === 'subscription_authorized_payment') {
       const paymentId = data?.id;
       const preapprovalId = data?.preapproval_id;
-      
+
       console.log('💳 Pago autorizado recibido:');
       console.log('   Payment ID:', paymentId);
       console.log('   Preapproval ID:', preapprovalId);
-      
+
       if (preapprovalId) {
         const user = await this.userRepository.findOne({
           where: { subscriptionId: preapprovalId },
         });
-        
+
         if (user && paymentId) {
           user.lastPaymentId = paymentId.toString();
-          
+
           // Activar suscripción si estaba inactiva
           if (user.subscriptionStatus !== SubscriptionStatus.ACTIVE) {
             user.subscriptionStatus = SubscriptionStatus.ACTIVE;
             user.rol = UserRole.SUBS_USER;
             console.log('✅ Suscripción activada por pago autorizado');
           }
-          
+
           // Extender periodo de suscripción
           const isTestMode = this.configService.subscription.mode === 'test';
           const currentEndDate = user.subscriptionEndDate ? new Date(user.subscriptionEndDate) : new Date();
           const now = new Date();
-          
+
           // Si la fecha de fin ya pasó, empezar desde ahora
           const baseDate = currentEndDate > now ? currentEndDate : now;
           const newEndDate = new Date(baseDate);
-          
+
           if (isTestMode) {
             newEndDate.setDate(newEndDate.getDate() + 1);
           } else {
             newEndDate.setMonth(newEndDate.getMonth() + 1);
           }
-          
+
           user.subscriptionEndDate = newEndDate;
           console.log(`📅 Periodo extendido hasta: ${newEndDate.toLocaleDateString('es-AR')}`);
-          
+
           await this.userRepository.save(user);
           console.log(
             '✅ Payment ID guardado y periodo extendido:',
@@ -685,10 +586,10 @@ export class SubscriptionService {
       } else {
         console.log('⚠️ No hay preapproval_id en el webhook de pago');
       }
-      
+
       // Continuar con el procesamiento normal del webhook
     }
-    
+
     // CASO 3: Validar si es un evento de suscripción
     if (type !== 'subscription_preapproval' && type !== 'subscription_authorized_payment') {
       console.log('⚠️ Evento no procesable (no es de suscripción):', type);
@@ -717,7 +618,7 @@ export class SubscriptionService {
     if (this.mpClient) {
       try {
         const subscription = await this.preApproval.get({ id: subscriptionId });
-        
+
         console.log('📊 Detalles de MP:', {
           status: subscription.status,
           date_created: subscription.date_created,
@@ -731,7 +632,7 @@ export class SubscriptionService {
         // Mapear estado de MP a estado local
         const newStatus = this.mapMercadoPagoStatus(subscription.status);
         user.subscriptionStatus = newStatus;
-        
+
         // ACTUALIZAR FECHA DE INICIO con la fecha real de MP
         if (subscription.date_created) {
           const mpStartDate = new Date(subscription.date_created);
@@ -749,7 +650,7 @@ export class SubscriptionService {
             );
           }
         }
-        
+
         // Cambiar rol según el estado
         if (newStatus === SubscriptionStatus.ACTIVE) {
           user.rol = UserRole.SUBS_USER;
@@ -787,20 +688,20 @@ export class SubscriptionService {
         if (user.pendingCancellation && user.subscriptionEndDate) {
           const now = new Date();
           const endDate = new Date(user.subscriptionEndDate);
-          
+
           if (now >= endDate) {
             console.log('🔚 Ejecutando cancelación pendiente');
-            
+
             try {
               await this.preApproval.update({
                 id: subscriptionId,
                 body: { status: 'cancelled' },
               });
-              
+
               user.subscriptionStatus = SubscriptionStatus.CANCELLED;
-              user.rol =  UserRole.FREE_USER;
+              user.rol = UserRole.FREE_USER;
               user.pendingCancellation = false;
-              
+
               console.log('✅ Suscripción cancelada automáticamente al final del periodo');
             } catch (cancelError) {
               console.error('❌ Error cancelando suscripción:', cancelError);
