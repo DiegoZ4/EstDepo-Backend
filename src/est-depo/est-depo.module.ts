@@ -30,6 +30,9 @@ import { UserService } from './services/user.service';
 import { User } from './entities/user.entity';
 import { UploadController } from './controllers/upload.controller';
 import { ImgController } from './controllers/img.controller';
+import { EquipoLibreController } from './controllers/equipo-libre.controller';
+import { EquipoLibreService } from './services/equipo-libre.service';
+import { EquipoLibre } from './entities/equipo-libre.entity';
 
 
 @Module({
@@ -47,7 +50,8 @@ import { ImgController } from './controllers/img.controller';
       Pais,
       Torneo,
       Partido,
-      Gol
+      Gol,
+      EquipoLibre,
     ])],
   controllers: [
     PaisController,
@@ -60,6 +64,7 @@ import { ImgController } from './controllers/img.controller';
     UserController,
     UploadController,
     ImgController,
+    EquipoLibreController,
   ],
   providers: [
     PartidoService,
@@ -71,6 +76,7 @@ import { ImgController } from './controllers/img.controller';
     CategoryService,
     GolesService,
     UserService,
+    EquipoLibreService,
   ],
   exports: [UserService],
 })
