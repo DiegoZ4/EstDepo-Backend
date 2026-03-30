@@ -5,8 +5,17 @@ import { PartialType } from '@nestjs/swagger';
 export enum UserRole {
   FREE_USER = 'freeUser',
   SUBS_USER = 'SubsUser',
+  SUBS_USER_MANUAL = 'SubsUserManual',
+  PERIODISTA = 'periodista',
   ADMIN = 'admin',
 }
+
+// Roles que NO deben ser modificados por la sincronización automática con Mercado Pago
+export const PROTECTED_ROLES: UserRole[] = [
+  UserRole.SUBS_USER_MANUAL,
+  UserRole.PERIODISTA,
+  UserRole.ADMIN,
+];
 
 export class CreateUserDto {
   @IsNotEmpty({ message: 'El email es obligatorio' })
@@ -23,7 +32,7 @@ export class CreateUserDto {
   readonly password: string;
 
   @IsNotEmpty({ message: 'El rol es obligatorio' })
-  @IsEnum(UserRole, { message: 'El rol debe ser freeUser, SubsUser o admin' })
+  @IsEnum(UserRole, { message: 'El rol debe ser freeUser, SubsUser, SubsUserManual, periodista o admin' })
   readonly rol: UserRole;
 
   @IsOptional()

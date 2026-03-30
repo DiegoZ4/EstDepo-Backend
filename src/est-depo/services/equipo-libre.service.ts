@@ -9,7 +9,7 @@ export class EquipoLibreService {
   constructor(
     @InjectRepository(EquipoLibre)
     private readonly equipoLibreRepo: Repository<EquipoLibre>,
-  ) {}
+  ) { }
 
   // Obtener equipos libres por torneo, categoría y fecha
   async getLibres(torneoId: number, categoriaId: number, fecha: number): Promise<EquipoLibre[]> {

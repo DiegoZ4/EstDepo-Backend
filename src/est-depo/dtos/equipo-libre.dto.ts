@@ -19,4 +19,4 @@ export class CreateEquipoLibreDto {
   fecha: number;
 }
 
-export class UpdateEquipoLibreDto extends PartialType(CreateEquipoLibreDto) {}
+export class UpdateEquipoLibreDto extends PartialType(CreateEquipoLibreDto) { }

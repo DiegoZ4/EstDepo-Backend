@@ -11,7 +11,7 @@ import {
 
 import config from '../config';
 import { User, SubscriptionStatus } from '../est-depo/entities/user.entity';
-import { UserRole } from '../est-depo/dtos/user.dto';
+import { UserRole, PROTECTED_ROLES } from '../est-depo/dtos/user.dto';
 import { CreateSubscriptionDto, CreatePreapprovalPlanDto } from './dtos/subscription.dto';
 
 @Injectable()
@@ -232,18 +232,22 @@ export class SubscriptionService {
           }
         }
 
-        // Actualizar rol según estado
-        const shouldBePremium = mpStatus === SubscriptionStatus.ACTIVE;
-        const isPremium = user.rol === UserRole.SUBS_USER;
+        // Actualizar rol según estado (solo si el rol NO es protegido)
+        if (!PROTECTED_ROLES.includes(user.rol)) {
+          const shouldBePremium = mpStatus === SubscriptionStatus.ACTIVE;
+          const isPremium = user.rol === UserRole.SUBS_USER;
 
-        if (shouldBePremium && !isPremium) {
-          user.rol = UserRole.SUBS_USER;
-          updated = true;
-          console.log('✅ Usuario promocionado a PREMIUM');
-        } else if (!shouldBePremium && isPremium) {
-          user.rol = UserRole.FREE_USER;
-          updated = true;
-          console.log('⬇️ Usuario bajado a FREE');
+          if (shouldBePremium && !isPremium) {
+            user.rol = UserRole.SUBS_USER;
+            updated = true;
+            console.log('✅ Usuario promocionado a PREMIUM');
+          } else if (!shouldBePremium && isPremium) {
+            user.rol = UserRole.FREE_USER;
+            updated = true;
+            console.log('⬇️ Usuario bajado a FREE');
+          }
+        } else {
+          console.log(`🔒 Rol protegido (${user.rol}), no se modifica`);
         }
 
         if (updated) {
@@ -392,7 +396,12 @@ export class SubscriptionService {
 
       // Actualizar estado del usuario inmediatamente
       user.subscriptionStatus = SubscriptionStatus.CANCELLED;
-      user.rol = UserRole.FREE_USER;
+      // Solo cambiar rol si NO es protegido (SubsUserManual, periodista, admin)
+      if (!PROTECTED_ROLES.includes(user.rol)) {
+        user.rol = UserRole.FREE_USER;
+      } else {
+        console.log(`🔒 Rol protegido (${user.rol}), no se modifica al revocar`);
+      }
       user.pendingCancellation = false;
       await this.userRepository.save(user);
 
@@ -489,7 +498,10 @@ export class SubscriptionService {
           // Activar suscripción si estaba inactiva
           if (user.subscriptionStatus !== SubscriptionStatus.ACTIVE) {
             user.subscriptionStatus = SubscriptionStatus.ACTIVE;
-            user.rol = UserRole.SUBS_USER;
+            // Solo cambiar rol si NO es protegido
+            if (!PROTECTED_ROLES.includes(user.rol)) {
+              user.rol = UserRole.SUBS_USER;
+            }
             console.log('✅ Suscripción activada por pago aprobado');
           }
 
@@ -651,13 +663,17 @@ export class SubscriptionService {
           }
         }
 
-        // Cambiar rol según el estado
-        if (newStatus === SubscriptionStatus.ACTIVE) {
-          user.rol = UserRole.SUBS_USER;
-          console.log('✅ Usuario cambiado a PREMIUM');
+        // Cambiar rol según el estado (solo si el rol NO es protegido)
+        if (!PROTECTED_ROLES.includes(user.rol)) {
+          if (newStatus === SubscriptionStatus.ACTIVE) {
+            user.rol = UserRole.SUBS_USER;
+            console.log('✅ Usuario cambiado a PREMIUM');
+          } else {
+            user.rol = UserRole.FREE_USER;
+            console.log('🚫 Usuario cambiado a FREE');
+          }
         } else {
-          user.rol = UserRole.FREE_USER;
-          console.log('🚫 Usuario cambiado a FREE');
+          console.log(`🔒 Rol protegido (${user.rol}), no se modifica por webhook`);
         }
 
         // ACTUALIZAR fecha del próximo pago desde MP

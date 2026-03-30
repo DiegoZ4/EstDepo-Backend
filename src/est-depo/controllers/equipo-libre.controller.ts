@@ -16,7 +16,7 @@ import { CreateEquipoLibreDto } from '../dtos/equipo-libre.dto';
 @ApiTags('equipos-libres')
 @Controller('equipo-libre')
 export class EquipoLibreController {
-  constructor(private equipoLibreService: EquipoLibreService) {}
+  constructor(private equipoLibreService: EquipoLibreService) { }
 
   // GET /equipo-libre/:torneoId/:categoriaId/:fecha → equipos libres en esa fecha
   @Get(':torneoId/:categoriaId/:fecha')
