@@ -96,6 +96,22 @@ export class SubscriptionController {
   }
 
   /**
+   * Endpoint GET /api/subscriptions/admin/:userId
+   * Permite a un admin ver los detalles de suscripción de cualquier usuario
+   */
+  @Get('admin/:userId')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Ver detalles de suscripción de un usuario (solo admins)' })
+  @ApiResponse({ status: 200, description: 'Detalles de suscripción' })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  @ApiResponse({ status: 403, description: 'Acceso denegado: Solo admins' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
+  async getUserSubscriptionDetails(@Param('userId') userId: string) {
+    return this.subscriptionService.getSubscriptionDetailsForAdmin(userId);
+  }
+
+  /**
    * Endpoint DELETE /api/subscriptions/admin/:userId
    * Permite a un admin revocar el premium de cualquier usuario
    */

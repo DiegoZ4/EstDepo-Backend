@@ -756,6 +756,36 @@ export class SubscriptionService {
   }
 
   /**
+   * Obtiene los detalles de suscripción de un usuario (para admin)
+   */
+  async getSubscriptionDetailsForAdmin(userId: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new HttpException('Usuario no encontrado', HttpStatus.NOT_FOUND);
+    }
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        rol: user.rol,
+      },
+      subscription: {
+        status: user.subscriptionStatus,
+        subscription_id: user.subscriptionId || null,
+        start_date: user.subscriptionStartDate || null,
+        end_date: user.subscriptionEndDate || null,
+        pending_cancellation: user.pendingCancellation,
+        last_payment_id: user.lastPaymentId || null,
+        is_premium: user.subscriptionStatus === SubscriptionStatus.ACTIVE
+          || user.rol === UserRole.SUBS_USER
+          || user.rol === UserRole.SUBS_USER_MANUAL,
+      },
+    };
+  }
+
+  /**
    * Verifica si un usuario tiene suscripción premium activa (1.9)
    */
   async isPremiumUser(userId: string): Promise<boolean> {
