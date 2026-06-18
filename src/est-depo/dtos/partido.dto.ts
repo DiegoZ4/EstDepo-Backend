@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsNumber, IsOptional, IsDate, IsArray } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, IsOptional, IsDateString, IsArray } from 'class-validator';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { Equipo } from '../entities/equipo.entity';
 
@@ -9,9 +9,9 @@ export class CreatePartidoDto {
   @ApiProperty({ description: 'The fecha of the partido' })
   readonly fecha: string;
 
-  @IsDate()
+  @IsDateString()
   @IsNotEmpty()
-  @ApiProperty({ description: 'The date of the partido' })
+  @ApiProperty({ description: 'Fecha y hora en que se jugará el partido (ISO 8601)', example: '2026-06-18T15:00:00Z' })
   readonly date: Date;
 
   @IsNumber()

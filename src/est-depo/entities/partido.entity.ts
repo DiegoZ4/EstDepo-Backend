@@ -14,6 +14,7 @@ import { Equipo } from './equipo.entity';
 import { Torneo } from './torneo.entity';
 import { Category } from './category.entity';
 import { Gol } from './goles.entity';
+import { Pronostico } from './pronostico.entity';
 
 
 @Entity()
@@ -45,6 +46,9 @@ export class Partido {
 
   @OneToMany(() => Gol, (gol) => gol.partido, { cascade: true, eager: true })
   goles: Gol[];
+
+  @OneToMany(() => Pronostico, (pronostico) => pronostico.partido)
+  pronosticos: Pronostico[];
 
 
   golesLocal: Gol[] = [];

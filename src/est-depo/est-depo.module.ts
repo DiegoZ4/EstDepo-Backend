@@ -33,6 +33,9 @@ import { ImgController } from './controllers/img.controller';
 import { EquipoLibreController } from './controllers/equipo-libre.controller';
 import { EquipoLibreService } from './services/equipo-libre.service';
 import { EquipoLibre } from './entities/equipo-libre.entity';
+import { PronosticoController } from './controllers/pronostico.controller';
+import { PronosticoService } from './services/pronostico.service';
+import { Pronostico } from './entities/pronostico.entity';
 
 
 @Module({
@@ -52,6 +55,7 @@ import { EquipoLibre } from './entities/equipo-libre.entity';
       Partido,
       Gol,
       EquipoLibre,
+      Pronostico,
     ])],
   controllers: [
     PaisController,
@@ -65,6 +69,7 @@ import { EquipoLibre } from './entities/equipo-libre.entity';
     UploadController,
     ImgController,
     EquipoLibreController,
+    PronosticoController,
   ],
   providers: [
     PartidoService,
@@ -77,6 +82,7 @@ import { EquipoLibre } from './entities/equipo-libre.entity';
     GolesService,
     UserService,
     EquipoLibreService,
+    PronosticoService,
   ],
   exports: [UserService],
 })
