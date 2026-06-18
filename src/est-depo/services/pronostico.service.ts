@@ -38,8 +38,13 @@ export class PronosticoService {
       );
     }
 
-    // No se puede pronosticar (ni cambiar) una vez que el partido empezó
-    if (partido.date && new Date(partido.date).getTime() <= Date.now()) {
+    // Solo se bloquea el pronóstico si la fecha está confirmada y el partido ya empezó.
+    // Si la fecha no está confirmada (fechaDeterminada = false), se puede votar siempre.
+    if (
+      partido.fechaDeterminada &&
+      partido.date &&
+      new Date(partido.date).getTime() <= Date.now()
+    ) {
       throw new BadRequestException(
         'El partido ya comenzó, no se puede pronosticar ni modificar el pronóstico',
       );
