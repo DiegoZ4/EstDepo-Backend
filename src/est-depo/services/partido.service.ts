@@ -55,7 +55,7 @@ export class PartidoService {
 
 
   async create(createPartidoDto: CreatePartidoDto): Promise<Partido> {
-    const { fecha, date, equipoLocalId, equipoVisitanteId, torneoId, group, categoriaId, estado, groupLocal, groupVisitante } = createPartidoDto;
+    const { fecha, date, fechaDeterminada, equipoLocalId, equipoVisitanteId, torneoId, group, categoriaId, estado, groupLocal, groupVisitante } = createPartidoDto;
 
     // Validar equipo local
     const equipoLocal = await this.equipoRepo.findOne({ where: { id: equipoLocalId } });
@@ -85,6 +85,7 @@ export class PartidoService {
     const partido = this.partidoRepo.create({
       fecha,
       date,
+      fechaDeterminada,
       group,
       equipoLocal,
       equipoVisitante,

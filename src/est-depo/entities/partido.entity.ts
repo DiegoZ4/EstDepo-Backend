@@ -25,8 +25,12 @@ export class Partido {
   @Column()
   fecha: string;
 
-  @Column({ type: 'timestamptz' })
+  @Column({ type: 'timestamptz', nullable: true })
   date: Date;
+
+  // true = la fecha del partido está confirmada; false = es provisional / aún no se sabe
+  @Column({ type: 'boolean', default: false })
+  fechaDeterminada: boolean;
 
   @ManyToOne(() => Equipo, (equipo) => equipo.partidosLocal)
   @JoinColumn({ name: 'equipo_local_id' })
