@@ -37,6 +37,12 @@ export class PartidoController {
     return this.partidoService.getFixtureByCategory(torneoId, categoriaId, fecha);
   }
 
+  // Fixture de una fase (fase de grupos o ronda de eliminatoria).
+  @Get('/fase/:faseId')
+  getFixtureByFase(@Param('faseId', ParseIntPipe) faseId: number) {
+    return this.partidoService.getPartidosByFase(faseId);
+  }
+
 
   @UseGuards(JwtAuthGuard)
   @Get(':id')

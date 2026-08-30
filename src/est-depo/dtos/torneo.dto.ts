@@ -3,7 +3,9 @@ import {
   IsNotEmpty,
   IsNumber,
   IsOptional,
-  IsArray
+  IsArray,
+  IsBoolean,
+  IsIn
 
 } from 'class-validator';
 
@@ -54,8 +56,46 @@ export class CreateTorneoDto {
 
   @IsNumber()
   @IsOptional()
-  @ApiProperty({ description: 'fechas del torneo' })
+  @ApiProperty({ description: 'fechas del torneo (en copa: fechas de la fase de grupos)' })
   readonly fechas: number;
+
+  // ── Formato ──────────────────────────────────────────────────────
+  @IsString()
+  @IsOptional()
+  @IsIn(['liga', 'copa'])
+  @ApiProperty({ description: 'Formato del torneo', enum: ['liga', 'copa'], default: 'liga', required: false })
+  readonly formato?: 'liga' | 'copa';
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({ description: 'Solo copa. false => eliminatoria directa', default: true, required: false })
+  readonly tieneFaseGrupos?: boolean;
+
+  @IsNumber()
+  @IsOptional()
+  @ApiProperty({ description: 'Cuántos equipos de cada grupo clasifican a la eliminatoria', default: 2, required: false })
+  readonly equiposClasificanPorGrupo?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({ description: 'Llaves de eliminatoria a ida y vuelta', default: false, required: false })
+  readonly idaVueltaEliminatoria?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({ description: 'Fase de grupos a doble rueda', default: false, required: false })
+  readonly idaVueltaGrupos?: boolean;
+
+  @IsString()
+  @IsOptional()
+  @IsIn(['penales', 'prorroga', 'gol_visitante', 'mejor_posicionado'])
+  @ApiProperty({
+    description: 'Cómo se resuelve una llave empatada',
+    enum: ['penales', 'prorroga', 'gol_visitante', 'mejor_posicionado'],
+    default: 'penales',
+    required: false,
+  })
+  readonly criterioDesempateLlave?: 'penales' | 'prorroga' | 'gol_visitante' | 'mejor_posicionado';
 
 }
 

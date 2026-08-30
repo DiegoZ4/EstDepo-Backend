@@ -55,7 +55,7 @@ export class PartidoService {
 
 
   async create(createPartidoDto: CreatePartidoDto): Promise<Partido> {
-    const { fecha, date, fechaDeterminada, equipoLocalId, equipoVisitanteId, torneoId, group, categoriaId, estado, groupLocal, groupVisitante } = createPartidoDto;
+    const { fecha, date, fechaDeterminada, equipoLocalId, equipoVisitanteId, torneoId, group, categoriaId, estado, groupLocal, groupVisitante, faseId, llaveId, esVuelta } = createPartidoDto;
 
     // Validar equipo local
     const equipoLocal = await this.equipoRepo.findOne({ where: { id: equipoLocalId } });
@@ -94,10 +94,22 @@ export class PartidoService {
       estado,
       groupLocal,
       groupVisitante,
+      faseId: faseId ?? null,
+      llaveId: llaveId ?? null,
+      esVuelta: esVuelta ?? false,
     });
 
     // Guardar en la base de datos
     return await this.partidoRepo.save(partido);
+  }
+
+  // Partidos de una fase (grupos o eliminatoria), agrupados por llave para el bracket.
+  async getPartidosByFase(faseId: number) {
+    return this.partidoRepo.find({
+      where: { faseId },
+      relations: ['equipoLocal', 'equipoVisitante', 'goles', 'llave', 'category', 'torneo'],
+      order: { esVuelta: 'ASC', id: 'ASC' },
+    });
   }
 
   async getFixtureByCategory(torneoId: number, categoriaId: number, fecha: number): Promise<Partido[]> {

@@ -11,11 +11,13 @@ import { Torneo } from '../entities/torneo.entity';
 import { CreateTorneoDto, UpdateTorneoDto } from '../dtos/torneo.dto';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
+import { TablaService } from './tabla.service';
 
 @Injectable()
 export class TorneoService {
   constructor(
     private configService: ConfigService,
+    private tablaService: TablaService,
     @InjectRepository(Torneo)
     private torneoRepo: Repository<Torneo>,
     @InjectRepository(Equipo)
@@ -91,75 +93,15 @@ export class TorneoService {
     return this.torneoRepo.save(newTorneo);
   }
 
-  // torneo.service.ts
+  // Tabla de posiciones por categoría, agrupada por `group`.
+  // `faseId` opcional: si se pasa, la tabla es solo de esa fase (p. ej. la fase
+  // de grupos de una copa). Si se omite, cuenta los partidos sin fase (liga clásica).
   async getTablaPorCategoriaAgrupada(
     torneoId: number,
-    categoriaId: number
+    categoriaId: number,
+    faseId?: number | null,
   ): Promise<Record<string, any[]>> {
-    // … tus validaciones …
-
-    const partidos = await this.partidoRepo.find({
-      where: {
-        estado: 'Finalizado',
-        torneo: { id: torneoId },
-        category: { id: categoriaId },
-      },
-      relations: ['equipoLocal', 'equipoVisitante', 'goles'],
-    });
-
-    // Primero, recabamos todas las IDs de equipos:
-    const equiposIds = new Set<number>();
-    partidos.forEach(p => {
-      equiposIds.add(p.equipoLocal.id);
-      equiposIds.add(p.equipoVisitante.id);
-    });
-    const equipos = await this.equipoRepo.findByIds(Array.from(equiposIds));
-    const eqMap = new Map(equipos.map(e => [e.id, e]));
-
-    // Vamos a acumular dos veces: una para local, otra para visitante
-    const statsPorGrupo: Record<string, any[]> = {};
-
-    partidos.forEach(p => {
-      const golesLocal = p.goles.filter(g => g.equipo.id === p.equipoLocal.id).length;
-      const golesVisit = p.goles.filter(g => g.equipo.id === p.equipoVisitante.id).length;
-
-      // Función auxiliar para inicializar y devolver el stats array de un grupo
-      const ensureGrupo = (grupo: string, equipoId: number) => {
-        if (!statsPorGrupo[grupo]) statsPorGrupo[grupo] = [];
-        let st = statsPorGrupo[grupo].find(s => s.equipo.id === equipoId);
-        if (!st) {
-          const equipo = eqMap.get(equipoId)!;
-          st = { equipo, Pts: 0, PJ: 0, PG: 0, PE: 0, PP: 0, GF: 0, GC: 0, DIF: 0 };
-          statsPorGrupo[grupo].push(st);
-        }
-        return st;
-      };
-
-      // **Local**: usa p.groupLocal o "General"
-      const gLocal = p.groupLocal?.trim() || p.group;
-      const stLocal = ensureGrupo(gLocal, p.equipoLocal.id);
-      stLocal.PJ++; stLocal.GF += golesLocal; stLocal.GC += golesVisit;
-      if (golesLocal > golesVisit) { stLocal.Pts += 3; stLocal.PG++; }
-      else if (golesLocal < golesVisit) { stLocal.PP++; }
-      else { stLocal.Pts++; stLocal.PE++; }
-      stLocal.DIF = stLocal.GF - stLocal.GC;
-
-      // **Visitante**: usa p.groupVisitante o "General"
-      const gVisit = p.groupVisitante?.trim() || p.group;
-      const stVisit = ensureGrupo(gVisit, p.equipoVisitante.id);
-      stVisit.PJ++; stVisit.GF += golesVisit; stVisit.GC += golesLocal;
-      if (golesVisit > golesLocal) { stVisit.Pts += 3; stVisit.PG++; }
-      else if (golesVisit < golesLocal) { stVisit.PP++; }
-      else { stVisit.Pts++; stVisit.PE++; }
-      stVisit.DIF = stVisit.GF - stVisit.GC;
-    });
-
-    // Finalmente ordena cada grupo por Pts, DIF, GF:
-    Object.values(statsPorGrupo).forEach(arr =>
-      arr.sort((a, b) => b.Pts - a.Pts || b.DIF - a.DIF || b.GF - a.GF)
-    );
-
-    return statsPorGrupo;
+    return this.tablaService.getTablaFaseGrupos(torneoId, categoriaId, faseId ?? null);
   }
 
 

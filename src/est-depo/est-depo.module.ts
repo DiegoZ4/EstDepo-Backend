@@ -18,6 +18,8 @@ import { Jugador } from './entities/jugador.entity';
 import { Pais } from './entities/pais.entity';
 import { Torneo } from './entities/torneo.entity';
 import { Partido } from './entities/partido.entity';
+import { Fase } from './entities/fase.entity';
+import { Llave } from './entities/llave.entity';
 import { TablaService } from './services/tabla.service';
 import { CategoryService } from './services/category.service';
 import { CategoryController } from './controllers/category.controller';
@@ -36,6 +38,11 @@ import { EquipoLibre } from './entities/equipo-libre.entity';
 import { PronosticoController } from './controllers/pronostico.controller';
 import { PronosticoService } from './services/pronostico.service';
 import { Pronostico } from './entities/pronostico.entity';
+import { FaseController } from './controllers/fase.controller';
+import { FaseService } from './services/fase.service';
+import { LlaveController } from './controllers/llave.controller';
+import { LlaveService } from './services/llave.service';
+import { TablaController } from './controllers/tabla.controller';
 
 
 @Module({
@@ -53,6 +60,8 @@ import { Pronostico } from './entities/pronostico.entity';
       Pais,
       Torneo,
       Partido,
+      Fase,
+      Llave,
       Gol,
       EquipoLibre,
       Pronostico,
@@ -70,6 +79,9 @@ import { Pronostico } from './entities/pronostico.entity';
     ImgController,
     EquipoLibreController,
     PronosticoController,
+    FaseController,
+    LlaveController,
+    TablaController,
   ],
   providers: [
     PartidoService,
@@ -78,6 +90,8 @@ import { Pronostico } from './entities/pronostico.entity';
     PaisService,
     EquipoService,
     TablaService,
+    FaseService,
+    LlaveService,
     CategoryService,
     GolesService,
     UserService,

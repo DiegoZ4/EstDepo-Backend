@@ -15,6 +15,8 @@ import { Torneo } from './torneo.entity';
 import { Category } from './category.entity';
 import { Gol } from './goles.entity';
 import { Pronostico } from './pronostico.entity';
+import { Fase } from './fase.entity';
+import { Llave } from './llave.entity';
 
 
 @Entity()
@@ -60,8 +62,50 @@ export class Partido {
 
   ganadorId: number | null = null;
 
+  // En eliminatoria puede quedar null y mandar llaveId.
+  // Valores válidos: nombre de grupo ("A", "B"…), "grupos" o "eliminatoria".
   @Column({ type: 'varchar', length: 255, nullable: true })
   group: string;
+
+  // ── Copa: fase / bracket ───────────────────────────────────────────
+  // null = liga clásica.
+  @ManyToOne(() => Fase, (fase) => fase.partidos, { nullable: true })
+  @JoinColumn({ name: 'faseId' })
+  fase: Fase;
+
+  @Column({ nullable: true })
+  faseId: number;
+
+  // A qué cruce del bracket pertenece.
+  @ManyToOne(() => Llave, (llave) => llave.partidos, { nullable: true })
+  @JoinColumn({ name: 'llaveId' })
+  llave: Llave;
+
+  @Column({ nullable: true })
+  llaveId: number;
+
+  // false = ida o partido único | true = vuelta.
+  @Column({ type: 'boolean', default: false })
+  esVuelta: boolean;
+
+  // Definición por penales (null si no hubo).
+  @Column({ type: 'smallint', nullable: true })
+  golesLocalPenales: number;
+
+  @Column({ type: 'smallint', nullable: true })
+  golesVisitantePenales: number;
+
+  // Si se jugó alargue / tiempo suplementario.
+  @Column({ type: 'boolean', default: false })
+  huboProrroga: boolean;
+
+  // Ganador del partido (con penales el marcador no alcanza para deducirlo).
+  @ManyToOne(() => Equipo, { nullable: true })
+  @JoinColumn({ name: 'ganadorEquipoId' })
+  ganadorEquipo: Equipo;
+
+  @Column({ nullable: true })
+  ganadorEquipoId: number;
 
 
   @AfterLoad()

@@ -6,6 +6,7 @@ import {
   Body,
   Put,
   Delete,
+  Query,
   UseGuards
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/jwt.auth.guard';
@@ -62,8 +63,13 @@ export class TorneoController {
   async getTablaPorCategoriaAgrupada(
     @Param('torneoId', ParseIntPipe) torneoId: number,
     @Param('categoriaId', ParseIntPipe) categoriaId: number,
+    @Query('faseId') faseId?: string,
   ) {
-    return this.torneoService.getTablaPorCategoriaAgrupada(torneoId, categoriaId);
+    return this.torneoService.getTablaPorCategoriaAgrupada(
+      torneoId,
+      categoriaId,
+      faseId !== undefined ? parseInt(faseId, 10) : null,
+    );
   }
 
 

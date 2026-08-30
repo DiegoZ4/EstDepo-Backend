@@ -80,6 +80,42 @@ export class CreatePartidoDto {
   @ApiProperty({ description: 'The ganador of the partido' })
   ganador: number;
 
+  // ── Copa: fase / bracket ─────────────────────────────────────────
+  @IsNumber()
+  @IsOptional()
+  @ApiProperty({ description: 'ID de la fase (null = liga clásica)', required: false })
+  readonly faseId?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @ApiProperty({ description: 'ID de la llave / cruce del bracket', required: false })
+  readonly llaveId?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({ description: 'true = partido de vuelta', default: false, required: false })
+  readonly esVuelta?: boolean;
+
+  @IsNumber()
+  @IsOptional()
+  @ApiProperty({ description: 'Goles del local en la definición por penales', required: false })
+  readonly golesLocalPenales?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @ApiProperty({ description: 'Goles del visitante en la definición por penales', required: false })
+  readonly golesVisitantePenales?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({ description: 'Si se jugó prórroga / alargue', default: false, required: false })
+  readonly huboProrroga?: boolean;
+
+  @IsNumber()
+  @IsOptional()
+  @ApiProperty({ description: 'ID del equipo ganador del partido', required: false })
+  readonly ganadorEquipoId?: number;
+
 }
 
 export class UpdatePartidoDto extends PartialType(CreatePartidoDto) { }
